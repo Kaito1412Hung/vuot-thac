@@ -138,6 +138,7 @@ namespace VuotThac.Boats
                 Destroy(preview);
             preview = Instantiate(def.prefab, spot, spotRotation);
             preview.name = "Preview_" + def.name;
+            preview.transform.position=spot+Vector3.up*preview.GetComponent<BoatController>().FloatHeight;
             // Thuyền trưng bày đứng yên trên mặt nước, không bị nước cuốn đi
             var rb = preview.GetComponent<Rigidbody>();
             if (rb != null)
@@ -160,7 +161,7 @@ namespace VuotThac.Boats
                 return;
 
             spin += Time.deltaTime * 22f;
-            float bob = Mathf.Sin(Time.time * 1.6f) * 0.04f;
+            float bob = preview.GetComponent<BoatController>().FloatHeight+Mathf.Sin(Time.time * 1.6f)*0.008f;
             preview.transform.SetPositionAndRotation(spot + Vector3.up * bob, spotRotation * Quaternion.Euler(0f, spin, 0f));
 
             if (boatCamera == null)
@@ -187,7 +188,8 @@ namespace VuotThac.Boats
             if (preview != null)
                 Destroy(preview);
 
-            playerBoat = Instantiate(def.prefab, spot + Vector3.up * 0.2f, spotRotation);
+            float spawnHeight=def.prefab.GetComponent<BoatController>().FloatHeight;
+            playerBoat = Instantiate(def.prefab, spot + Vector3.up * (spawnHeight+0.02f), spotRotation);
             playerBoat.name = "PlayerBoat_" + def.name;
             player = playerBoat.GetComponent<BoatController>();
             player.Track = track;
@@ -277,7 +279,7 @@ namespace VuotThac.Boats
 
             // Giao diện khi đang chơi
             hudRoot = Rect(root, "Hud", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
-            var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
+            var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    C: đổi góc nhìn    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
             Place(hint.rectTransform, new Vector2(0f, 1f), new Vector2(30f, -24f), new Vector2(1200f, 40f), new Vector2(0f, 1f));
             Shadow(hint);
             speedText = Label(hudRoot.transform, "Speed", "0 km/h", 56, FontStyle.Bold, TextAnchor.LowerRight);

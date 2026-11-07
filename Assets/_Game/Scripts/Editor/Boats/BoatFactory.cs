@@ -13,7 +13,7 @@ namespace VuotThac.EditorTools.Boats
     /// Tạo 10 mẫu thuyền: hình dựng bằng code, prefab có vật lý, file thông tin thuyền và danh sách thuyền.
     /// Chạy lại thì cập nhật đè lên, giữ nguyên các liên kết đang dùng.
     /// </summary>
-    public static class BoatFactory
+    public static partial class BoatFactory
     {
         const string MaterialFolder = "Assets/_Game/Materials/Boats";
         const string PrefabFolder = "Assets/_Game/Prefabs/Boats";
@@ -45,6 +45,18 @@ namespace VuotThac.EditorTools.Boats
                 mat.SetColor("_BaseColor", color);
                 mat.SetFloat("_Smoothness", smoothness);
                 AssetDatabase.CreateAsset(mat, path);
+            }
+            if(name.Contains("Wood")||name.Contains("Bamboo")||name.Contains("Bark"))
+            {
+                var wood=AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Materials/Wood.mat");
+                if(wood!=null&&wood.HasProperty("_BaseMap"))mat.SetTexture("_BaseMap",wood.GetTexture("_BaseMap"));
+                EditorUtility.SetDirty(mat);
+            }
+            if(name=="BoatGlass")
+            {
+                mat.SetColor("_BaseColor",new Color(0.2f,0.34f,0.44f,0.24f));
+                mat.SetFloat("_Surface",1);mat.SetFloat("_SrcBlend",5);mat.SetFloat("_DstBlend",10);mat.SetFloat("_ZWrite",0);
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");mat.renderQueue=3000;EditorUtility.SetDirty(mat);
             }
             cache[name] = mat;
             return mat;
@@ -79,62 +91,14 @@ namespace VuotThac.EditorTools.Boats
         /// Người chèo đội nón lá. <paramref name="pos"/> là chỗ ngồi (hông), nhìn về +z.
         /// Đứng thì người cao hơn và cầm sào hoặc mái chèo dài.
         /// </summary>
-        static void Rower(BoatMesh m, Vector3 pos, Material shirt, Paddle paddle, float side = 1f, bool standing = false, bool hat = true)
+        class RowerSeat
         {
-            float lift = standing ? 0.55f : 0f;
-            Vector3 hip = pos + Vector3.up * lift;
-            if (standing)
-            {
-                m.Box(Pants, pos + new Vector3(-0.09f, 0.28f, 0f), new Vector3(0.13f, 0.56f, 0.15f));
-                m.Box(Pants, pos + new Vector3(0.09f, 0.28f, 0f), new Vector3(0.13f, 0.56f, 0.15f));
-            }
-            else
-            {
-                m.Box(Pants, pos + new Vector3(0f, 0.05f, 0.18f), new Vector3(0.32f, 0.14f, 0.4f));
-            }
-
-            m.Box(shirt, hip + new Vector3(0f, 0.3f, 0f), new Vector3(0.36f, 0.5f, 0.24f));
-            m.Sphere(Skin, hip + new Vector3(0f, 0.68f, 0f), new Vector3(0.13f, 0.14f, 0.13f));
-            if (hat)
-                m.Cone(Hat, hip + new Vector3(0f, 0.74f, 0f), hip + new Vector3(0f, 0.95f, 0f), 0.3f, 10);
-
-            Vector3 shoulderL = hip + new Vector3(-0.2f, 0.48f, 0f);
-            Vector3 shoulderR = hip + new Vector3(0.2f, 0.48f, 0f);
-            Vector3 handL = hip + new Vector3(-0.18f * side + (side < 0 ? -0.1f : 0.1f), 0.3f, 0.3f);
-            Vector3 handR = hip + new Vector3(0.18f * side + (side < 0 ? -0.1f : 0.1f), 0.42f, 0.22f);
-            m.Beam(shirt, shoulderL, handL, 0.09f, 0.09f);
-            m.Beam(shirt, shoulderR, handR, 0.09f, 0.09f);
-
-            switch (paddle)
-            {
-                case Paddle.Single:
-                {
-                    Vector3 top = hip + new Vector3(0.15f * side, 0.62f, 0.2f);
-                    Vector3 bottom = hip + new Vector3(0.62f * side, -0.55f, 0.05f);
-                    m.Cylinder(Wood, top, bottom, 0.025f, 5);
-                    m.Box(Wood, bottom + new Vector3(0.02f * side, -0.12f, 0f), new Vector3(0.04f, 0.36f, 0.16f));
-                    break;
-                }
-                case Paddle.Double:
-                {
-                    Vector3 l = hip + new Vector3(-1.05f, 0.4f, 0.22f), r = hip + new Vector3(1.05f, 0.25f, 0.22f);
-                    m.Cylinder(Dark, l, r, 0.025f, 5);
-                    m.Box(Yellow, l, new Vector3(0.05f, 0.14f, 0.32f), Quaternion.Euler(0f, 0f, 15f));
-                    m.Box(Yellow, r, new Vector3(0.05f, 0.14f, 0.32f), Quaternion.Euler(0f, 0f, 15f));
-                    break;
-                }
-                case Paddle.Pole:
-                    m.Cylinder(Bamboo, hip + new Vector3(0.2f * side, 1.4f, 0.35f), hip + new Vector3(0.6f * side, -1.6f, -0.3f), 0.03f, 5);
-                    break;
-                case Paddle.Oar:
-                {
-                    Vector3 grip = hip + new Vector3(0.1f * side, 0.45f, 0.35f);
-                    Vector3 end = hip + new Vector3(0.9f * side, -0.95f, -0.9f);
-                    m.Cylinder(Wood, grip, end, 0.03f, 5);
-                    m.Box(Wood, end, new Vector3(0.05f, 0.18f, 0.5f), Quaternion.LookRotation(end - grip));
-                    break;
-                }
-            }
+            public Vector3 position;public Material shirt;public Paddle paddle;public float side;public bool standing;
+        }
+        static readonly List<RowerSeat> rowerSeats=new();
+        static void Rower(BoatMesh m,Vector3 pos,Material shirt,Paddle paddle,float side=1,bool standing=false,bool hat=true)
+        {
+            rowerSeats.Add(new RowerSeat{position=pos,shirt=shirt,paddle=paddle,side=side,standing=standing});
         }
 
         // ---------- 10 mẫu thuyền ----------
@@ -188,7 +152,6 @@ namespace VuotThac.EditorTools.Boats
                     }
                     m.Tube(Dark, ring, 0.035f, 5);
                     Rower(m, new Vector3(0f, -0.05f, -0.25f), Shirt("Red", new Color(0.82f, 0.2f, 0.18f)), Paddle.Double, 1f, false, false);
-                    m.Sphere(Red, new Vector3(0f, 0.66f, -0.25f), new Vector3(0.15f, 0.12f, 0.16f));
                 },
             },
             new Spec
@@ -261,7 +224,6 @@ namespace VuotThac.EditorTools.Boats
                     m.Box(Dark, new Vector3(0f, 0.45f, -2.05f), new Vector3(0.35f, 0.55f, 0.35f));
                     m.Cylinder(Dark, new Vector3(0f, 0.2f, -2.1f), new Vector3(0f, -0.55f, -2.15f), 0.06f, 6);
                     Rower(m, new Vector3(0f, 0.1f, -0.5f), Shirt("Navy", new Color(0.15f, 0.2f, 0.4f)), Paddle.None, 1f, false, false);
-                    m.Box(Red, new Vector3(0f, 0.86f, -0.5f), new Vector3(0.28f, 0.1f, 0.3f));
                 },
             },
             new Spec
@@ -339,6 +301,7 @@ namespace VuotThac.EditorTools.Boats
                 Directory.CreateDirectory(folder);
             Directory.CreateDirectory(Path.GetDirectoryName(MeshAsset));
             cache.Clear();
+            closedBodyMesh=null;
 
             if (AssetDatabase.LoadMainAssetAtPath(MeshAsset) != null)
                 AssetDatabase.DeleteAsset(MeshAsset);
@@ -370,15 +333,16 @@ namespace VuotThac.EditorTools.Boats
             {
                 def = ScriptableObject.CreateInstance<BoatDefinition>();
                 AssetDatabase.CreateAsset(def, defPath);
+                def.displayName = spec.name;
+                def.description = spec.description;
+                def.speed = spec.speed;
+                def.acceleration = spec.accel;
+                def.handling = spec.handling;
+                def.toughness = spec.toughness;
             }
-            def.displayName = spec.name;
-            def.description = spec.description;
-            def.speed = spec.speed;
-            def.acceleration = spec.accel;
-            def.handling = spec.handling;
-            def.toughness = spec.toughness;
 
             var builder = new BoatMesh();
+            rowerSeats.Clear();
             spec.build(builder);
             var mesh = builder.Build("Boat_" + spec.id, out var materials);
             AssetDatabase.AddObjectToAsset(mesh, MeshAsset);
@@ -417,6 +381,10 @@ namespace VuotThac.EditorTools.Boats
             ctrl.hullBeam = spec.beam;
             ctrl.hullDepth = spec.depth;
             ctrl.model = model.transform;
+
+            BuildRealisticCrew(root,model.transform,spec);
+            AddBoatFittings(model.transform,spec);
+            BuildWaterOcclusion(model.transform,spec,builder.LastHull);
 
             string prefabPath = $"{PrefabFolder}/{spec.id}.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);

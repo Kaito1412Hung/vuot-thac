@@ -38,6 +38,18 @@ namespace VuotThac.Boats
         /// <summary>Tốc độ theo mặt phẳng ngang, mét mỗi giây.</summary>
         public float Speed { get; private set; }
 
+        public float FloatHeight
+        {
+            get
+            {
+                string id=definition!=null?definition.name:string.Empty;
+                if(id=="BeTre")return 0.08f;
+                if(id=="PhaoCaoSu")return 0.15f;
+                // Keep the inside floor dry while leaving the keel just below water.
+                return Mathf.Max(0.08f,hullDepth-0.03f);
+            }
+        }
+
         const float FloatRestDepth = 0.18f;
 
         Rigidbody rb;
@@ -58,10 +70,11 @@ namespace VuotThac.Boats
 
             // Bốn điểm phao ở bốn góc thân thuyền, ngang mực nước mong muốn
             float x = hullBeam * 0.35f, z = hullLength * 0.35f;
+            float floatY=-(FloatRestDepth+FloatHeight);
             floats = new[]
             {
-                new Vector3(-x, 0f, z), new Vector3(x, 0f, z),
-                new Vector3(-x, 0f, -z), new Vector3(x, 0f, -z),
+                new Vector3(-x, floatY, z), new Vector3(x, floatY, z),
+                new Vector3(-x, floatY, -z), new Vector3(x, floatY, -z),
             };
         }
 
@@ -91,7 +104,7 @@ namespace VuotThac.Boats
                 wetPoints++;
                 // Chìm càng sâu đẩy càng mạnh, có giảm chấn để thuyền không nảy tưng tưng
                 float lift = Mathf.Min(depth / FloatRestDepth, 3f) * g;
-                float damping = rb.GetPointVelocity(p).y * 2.5f;
+                float damping = rb.GetPointVelocity(p).y * 6f;
                 rb.AddForceAtPosition(Vector3.up * ((lift - damping) * rb.mass * 0.25f), p, ForceMode.Force);
             }
 
@@ -190,7 +203,7 @@ namespace VuotThac.Boats
                 return;
             var w = Track.SampleWater(transform.position, ref riverHint);
             Vector3 pos = w.center;
-            pos.y = w.height + 0.3f;
+            pos.y = w.height + FloatHeight + 0.03f;
             Place(pos, Quaternion.LookRotation(w.tangent, Vector3.up));
             Respawned?.Invoke();
         }

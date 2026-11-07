@@ -114,6 +114,7 @@ namespace VuotThac.EditorTools.Boats
         /// <summary>Ống tròn (nhiều cạnh) từ điểm a tới điểm b.</summary>
         public void Cylinder(Material m, Vector3 a, Vector3 b, float radius, int sides = 7, bool caps = true)
         {
+            sides=Mathf.Max(sides,16);
             Vector3 axis = (b - a).normalized;
             Basis(axis, out var u, out var v);
             Vector3 mid = (a + b) * 0.5f;
@@ -148,7 +149,7 @@ namespace VuotThac.EditorTools.Boats
         }
 
         /// <summary>Khối cầu thô (ít mặt), dùng cho đầu người, cục u.</summary>
-        public void Sphere(Material m, Vector3 center, Vector3 radius, int rings = 4, int segments = 6)
+        public void Sphere(Material m, Vector3 center, Vector3 radius, int rings = 10, int segments = 20)
         {
             Vector3 P(int r, int s)
             {
@@ -177,7 +178,9 @@ namespace VuotThac.EditorTools.Boats
 
         public void Hull(HullShape h, Material outer, Material inner, Material rim, Material deck = null)
         {
-            const int stations = 18;
+            LastHull=h;
+            int smoothStart=verts.Count;
+            const int stations = 64;
             float tStart = -(1f - h.sternCut);
             var outerRing = new Vector3[stations + 1][];
             var innerRing = new Vector3[stations + 1][];
@@ -196,16 +199,17 @@ namespace VuotThac.EditorTools.Boats
                 tops[i] = top;
                 zs[i] = z;
 
-                float[] xs = { -1f, -0.95f, -0.6f, 0f, 0.6f, 0.95f, 1f };
-                float[] ys = { 0f, 0.5f, 0.92f, 1f, 0.92f, 0.5f, 0f };
-                outerRing[i] = new Vector3[7];
-                innerRing[i] = new Vector3[7];
-                for (int j = 0; j < 7; j++)
+                
+                
+                outerRing[i] = new Vector3[17];
+                innerRing[i] = new Vector3[17];
+                for (int j = 0; j < 17; j++)
                 {
-                    float y = Mathf.Lerp(top, bottom, ys[j]);
-                    outerRing[i][j] = new Vector3(xs[j] * w, y, z);
-                    float yi = j == 0 || j == 6 ? top : y + 0.07f;
-                    innerRing[i][j] = new Vector3(xs[j] * w * 0.86f, yi, z);
+                    float theta=-Mathf.PI*0.5f+j*Mathf.PI/16;
+                    float y=Mathf.Lerp(top,bottom,Mathf.Cos(theta));
+                    outerRing[i][j] = new Vector3(Mathf.Sin(theta) * w, y, z);
+                    float yi = j == 0 || j == 16 ? top : y + 0.07f;
+                    innerRing[i][j] = new Vector3(Mathf.Sin(theta) * w * 0.86f, yi, z);
                 }
             }
 
@@ -215,32 +219,33 @@ namespace VuotThac.EditorTools.Boats
                 float top = (tops[i] + tops[i + 1]) * 0.5f;
                 Vector3 axis = new(0f, top - h.depth * 0.5f, zMid);
                 Vector3 above = new(0f, top + 2f, zMid);
-                for (int j = 0; j < 6; j++)
+                for (int j = 0; j < 16; j++)
                 {
                     QuadAway(outer, outerRing[i][j], outerRing[i + 1][j], outerRing[i + 1][j + 1], outerRing[i][j + 1], axis);
                     QuadToward(inner, innerRing[i][j], innerRing[i + 1][j], innerRing[i + 1][j + 1], innerRing[i][j + 1], above);
                 }
-                foreach (int j in new[] { 0, 6 })
+                float tMid = Mathf.Lerp(tStart, 1f, (i + 0.5f) / stations);
+                if(deck==null||tMid<h.deckFrom)foreach (int j in new[] { 0, 16 })
                     QuadToward(rim, outerRing[i][j], outerRing[i + 1][j], innerRing[i + 1][j], innerRing[i][j], outerRing[i][j] + Vector3.up * 3f);
 
-                float tMid = Mathf.Lerp(tStart, 1f, (i + 0.5f) / stations);
                 if (deck != null && tMid >= h.deckFrom)
-                    QuadToward(deck, outerRing[i][0], outerRing[i + 1][0], outerRing[i + 1][6], outerRing[i][6], above + Vector3.up * 5f);
+                    QuadToward(deck, outerRing[i][0], outerRing[i + 1][0], outerRing[i + 1][16], outerRing[i][16], above + Vector3.up * 5f);
             }
 
             // Đuôi vuông: bịt mặt sau
             if (h.sternCut > 0f)
             {
                 Vector3 c = new(0f, (tops[0] - h.depth) * 0.5f, zs[0]);
-                for (int j = 0; j < 6; j++)
+                for (int j = 0; j < 16; j++)
                     TriToward(outer, c, outerRing[0][j], outerRing[0][j + 1], c - Vector3.forward * 5f);
             }
+            for(int index=smoothStart;index<verts.Count;index++)smoothVertices.Add(index);
         }
 
         /// <summary>Thúng chai tròn: lòng chảo, có vành.</summary>
         public void Bowl(float radius, float depth, float rimHeight, Material outer, Material inner, Material rim)
         {
-            const int seg = 18;
+            const int seg = 64;
             float[] rs = { 0f, 0.45f, 0.75f, 0.93f, 1f };
             float[] ys = { -depth, -depth * 0.9f, -depth * 0.6f, -depth * 0.12f, rimHeight };
             Vector3 P(int k, int s, float scale, float lift)
@@ -273,6 +278,10 @@ namespace VuotThac.EditorTools.Boats
                 Sphere(m, p, Vector3.one * radius, 3, sides);
         }
 
+        readonly HashSet<int> smoothVertices=new();
+        public bool smoothAll;
+        public HullShape? LastHull { get; private set; }
+
         public Mesh Build(string name, out Material[] materials)
         {
             var mesh = new Mesh { name = name };
@@ -283,6 +292,17 @@ namespace VuotThac.EditorTools.Boats
             for (int i = 0; i < subs.Count; i++)
                 mesh.SetTriangles(subs[i], i, false);
             mesh.RecalculateNormals();
+            if(smoothAll)for(int i=0;i<verts.Count;i++)smoothVertices.Add(i);
+            var normals=mesh.normals;
+            var groups=new Dictionary<Vector3Int,Vector3>();
+            foreach(int index in smoothVertices)
+            {
+                var key=Vector3Int.RoundToInt(verts[index]*10000);
+                groups.TryGetValue(key,out var sum);groups[key]=sum+normals[index];
+            }
+            foreach(int index in smoothVertices)normals[index]=groups[Vector3Int.RoundToInt(verts[index]*10000)].normalized;
+            mesh.normals=normals;
+            var uv=new List<Vector2>();foreach(var v in verts)uv.Add(new Vector2(v.x*2+v.y*0.3f,v.z*2));mesh.SetUVs(0,uv);
             mesh.RecalculateBounds();
             materials = mats.ToArray();
             return mesh;

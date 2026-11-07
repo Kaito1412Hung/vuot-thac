@@ -23,7 +23,7 @@ namespace VuotThac.Boats
         const string PrefKey = "VuotThac.SelectedBoat";
         static readonly string[] StatNames = { "Tốc độ", "Tăng tốc", "Bẻ lái", "Độ bền" };
 
-        enum State { Selecting, Playing }
+        enum State { Selecting, Playing, Finished }
 
         State state;
         int index;
@@ -32,6 +32,9 @@ namespace VuotThac.Boats
         Vector3 spot, spotForward;
         Quaternion spotRotation;
         float spin;
+        float raceTime;
+        GameObject finishRoot;
+        Text finishText;
 
         Font font;
         GameObject selectRoot, hudRoot;
@@ -101,7 +104,7 @@ namespace VuotThac.Boats
                 if (confirmAction.WasPressedThisFrame()) StartRace();
                 AnimatePreview();
             }
-            else
+            else if (state == State.Playing)
             {
                 if (backAction.WasPressedThisFrame())
                 {
@@ -109,15 +112,29 @@ namespace VuotThac.Boats
                     return;
                 }
                 if (player != null)
-                    speedText.text = $"{player.Speed * 3.6f:0} km/h";
+                {
+                    raceTime += Time.deltaTime;
+                    var sample = track.GetNearest(track.BeforeRaceInsertion(player.transform.position));
+                    float progress = Mathf.Clamp01((sample.distance - track.StartDistance) / track.RaceLength);
+                    speedText.text = $"{player.Speed * 3.6f:0} km/h  ·  {progress * 100:0}%\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}";
+                    var finish = track.EvaluateAtDistance(track.FinishDistance);
+                    Vector3 delta = player.transform.position - track.AfterRaceInsertion(finish.center);
+                    delta.y = 0;
+                    if (sample.distance >= track.FinishDistance && delta.magnitude < 40 && Vector3.Dot(delta, finish.tangent) >= 0)
+                        FinishRace();
+                }
             }
+            else if (backAction.WasPressedThisFrame() || confirmAction.WasPressedThisFrame()) EnterSelect();
         }
 
         // ---------- Luồng chơi ----------
 
+        public void ReturnToSelection() => EnterSelect();
+
         void EnterSelect()
         {
             state = State.Selecting;
+            if (finishRoot != null) finishRoot.SetActive(false);
             if (playerBoat != null)
                 Destroy(playerBoat);
             player = null;
@@ -181,6 +198,7 @@ namespace VuotThac.Boats
 
         void StartRace()
         {
+            raceTime = 0;
             var def = catalog.boats[index];
             PlayerPrefs.SetInt(PrefKey, index);
             PlayerPrefs.Save();
@@ -194,6 +212,8 @@ namespace VuotThac.Boats
             player = playerBoat.GetComponent<BoatController>();
             player.Track = track;
             player.Input = playerBoat.AddComponent<PlayerBoatInput>();
+            if (Application.isMobilePlatform)
+                playerBoat.AddComponent<MobileBoatControls>().Initialize((PlayerBoatInput)player.Input, boatCamera, this);
 
             if (boatCamera != null)
                 boatCamera.Follow(playerBoat.transform, player.hullLength);
@@ -201,6 +221,19 @@ namespace VuotThac.Boats
             selectRoot.SetActive(false);
             hudRoot.SetActive(true);
             state = State.Playing;
+        }
+
+        void FinishRace()
+        {
+            state = State.Finished;
+            var input = player.GetComponent<PlayerBoatInput>();
+            input.ReleaseTouch(); input.enabled = false;
+            var mobile = player.GetComponent<MobileBoatControls>();
+            if (mobile != null) mobile.enabled = false;
+            player.GetComponent<Rigidbody>().isKinematic = true;
+            hudRoot.SetActive(false);
+            finishText.text = $"HOÀN THÀNH ĐƯỜNG ĐUA\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}";
+            finishRoot.SetActive(true);
         }
 
         // ---------- Giao diện ----------
@@ -224,6 +257,9 @@ namespace VuotThac.Boats
             // Co giãn theo chiều cao: màn hình điện thoại nằm ngang dù dài cỡ nào bảng cũng vừa khít theo chiều dọc
             scaler.matchWidthOrHeight = 1f;
             var root = canvasGo.transform;
+            var safeRoot = Rect(root, "SafeArea", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            safeRoot.gameObject.AddComponent<BoatSafeArea>();
+            root = safeRoot;
 
             // Màn chọn thuyền
             selectRoot = Rect(root, "Select", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
@@ -274,6 +310,7 @@ namespace VuotThac.Boats
             Shadow(counterText);
 
             var keys = Label(selectRoot.transform, "Keys", "A/D hoặc ← → để đổi thuyền · Enter để bắt đầu", 28, FontStyle.Normal, TextAnchor.MiddleCenter);
+            if (Application.isMobilePlatform) keys.text = "Chạm < > để chọn thuyền · Chạm BẮT ĐẦU để chơi";
             Place(keys.rectTransform, new Vector2(0.3f, 0f), new Vector2(0f, 60f), new Vector2(900f, 30f));
             Shadow(keys);
 
@@ -282,9 +319,20 @@ namespace VuotThac.Boats
             var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    V: đổi góc nhìn    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
             Place(hint.rectTransform, new Vector2(0f, 1f), new Vector2(30f, -24f), new Vector2(1200f, 40f), new Vector2(0f, 1f));
             Shadow(hint);
+            if (Application.isMobilePlatform) hint.gameObject.SetActive(false);
             speedText = Label(hudRoot.transform, "Speed", "0 km/h", 56, FontStyle.Bold, TextAnchor.LowerRight);
             Place(speedText.rectTransform, new Vector2(1f, 0f), new Vector2(-40f, 30f), new Vector2(400f, 80f), new Vector2(1f, 0f));
             Shadow(speedText);
+            speedText.fontSize = 38;
+            if (Application.isMobilePlatform)
+                Place(speedText.rectTransform, new Vector2(1, 1), new Vector2(-40, -190), new Vector2(650, 120), new Vector2(1, 1));
+            finishRoot = Rect(root, "Finish", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
+            finishRoot.AddComponent<Image>().color = new Color(0.02f, 0.06f, 0.09f, 0.85f);
+            finishText = Label(finishRoot.transform, "Result", "", 56, FontStyle.Bold, TextAnchor.MiddleCenter);
+            Place(finishText.rectTransform, new Vector2(0.5f, 0.6f), Vector2.zero, new Vector2(1100, 230));
+            var again = Button(finishRoot.transform, "Return", "CHỌN THUYỀN / CHƠI LẠI", new Color(0.2f, 0.62f, 0.3f), EnterSelect);
+            Place(again, new Vector2(0.5f, 0.35f), Vector2.zero, new Vector2(720, 110));
+            finishRoot.SetActive(false);
         }
 
         RectTransform Rect(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)

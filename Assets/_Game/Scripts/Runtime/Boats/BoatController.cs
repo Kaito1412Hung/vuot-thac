@@ -42,11 +42,14 @@ namespace VuotThac.Boats
         {
             get
             {
+                // Gốc toạ độ của thân thuyền là đường nước thiết kế, đáy nằm ở -hullDepth.
+                // Thuyền thật ăn nước khoảng 55–60% phần thân dưới gốc; lòng thuyền không bị nước tràn
+                // vì có nắp che nước vô hình ở mép mạn (DryInteriorWaterMask).
                 string id=definition!=null?definition.name:string.Empty;
-                if(id=="BeTre")return 0.08f;
-                if(id=="PhaoCaoSu")return 0.15f;
-                // Keep the inside floor dry while leaving the keel just below water.
-                return Mathf.Max(0.08f,hullDepth-0.03f);
+                if(id=="BeTre")return 0.03f;      // cây tre chìm gần nửa
+                if(id=="PhaoCaoSu")return 0.04f;  // ống phao chìm khoảng một phần ba
+                if(id=="ThuyenThung")return hullDepth*0.45f;
+                return hullDepth*0.4f;
             }
         }
 
@@ -173,9 +176,21 @@ namespace VuotThac.Boats
 
         void LateUpdate()
         {
-            if (model != null)
-                model.localRotation = Quaternion.Euler(0f, 0f, lean);
+            if (model == null)
+                return;
+            // Dập dềnh nhẹ theo sóng: vài dao động chậm lệch pha nhau để không đều như máy.
+            // Chỉ xoay phần hình, vật lý vẫn tính trên thân cứng.
+            float t = Time.time + bobSeed;
+            float k = 1f + Mathf.Clamp01(Speed / 8f) * 0.8f;
+            float pitch = (Mathf.Sin(t * 1.13f) * 0.55f + Mathf.Sin(t * 2.31f + 1.7f) * 0.25f) * k;
+            float roll = (Mathf.Sin(t * 1.37f + 0.6f) * 0.8f + Mathf.Sin(t * 2.9f + 2.2f) * 0.3f) * k;
+            float heave = (Mathf.Sin(t * 1.21f + 0.3f) * 0.012f + Mathf.Sin(t * 2.6f) * 0.005f) * k;
+            model.localRotation = Quaternion.Euler(pitch, 0f, lean + roll);
+            model.localPosition = new Vector3(0f, heave, 0f);
         }
+
+        float bobSeed;
+        void OnEnable() { bobSeed = UnityEngine.Random.Range(0f, 100f); }
 
         void OnCollisionEnter(Collision collision)
         {

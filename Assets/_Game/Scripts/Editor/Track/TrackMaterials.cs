@@ -37,7 +37,7 @@ namespace VuotThac.EditorTools.Track
                 Trunk = Get("Trunk", new Color(0.42f, 0.28f, 0.17f)),
                 Leaves = Get("Leaves", new Color(0.27f, 0.52f, 0.25f)),
                 LeavesDark = Get("LeavesDark", new Color(0.18f, 0.40f, 0.22f)),
-                Water = Get("Water", new Color(0.18f, 0.52f, 0.68f, 0.82f), smoothness: 0.85f, transparent: true),
+                Water = Get("Water", new Color(0.18f, 0.52f, 0.68f, 0.96f), smoothness: 0.85f, transparent: true),
                 GatePole = Get("GatePole", new Color(0.93f, 0.93f, 0.9f)),
                 GateStart = Get("GateStart", new Color(0.25f, 0.72f, 0.33f)),
                 GateFinish = Get("GateFinish", new Color(0.86f, 0.25f, 0.22f)),
@@ -117,3 +117,4 @@ namespace VuotThac.EditorTools.Track
         }
     }
 }
+

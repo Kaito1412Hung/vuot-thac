@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using UnityEditor;
@@ -138,6 +138,23 @@ namespace VuotThac.EditorTools.Track
             BuildBranchCaves(ctx, Group(root, "BranchCaves"));
             BuildBarriers(ctx, Group(root, "Barriers"));
             BuildFallDetails(ctx, Group(root, "Falls"));
+            DryBuildingPlacement.Repair(track);
+            WaterJunctionRepair.Repair(track);
+            JunctionFillets.Build(track);
+            // Giữ bản đất/núi trước khi các bước làm khớp bờ và khoét hang chia nhỏ lưới,
+            // để cuối cùng gộp lại những vùng chia thừa (xem TerrainMeshCompactor)
+            var terrainBeforeSubdivision = SnapshotGround(track);
+            ShorelineFinish.Repair(track);
+            MajesticCaverns.Build(track);
+            CaveInteriorThemes.Apply(track);
+            MountainCaveAccess.Build(track);
+            CaveAccessFinisher.Finish(track);
+            CaveDoorClearance.Clear(track);
+            CaveLightBudget.Apply(track);
+            ForestDistribution.Balance(track);
+            Debug.Log("[Vượt Thác] Gộp lưới đất: " + TerrainMeshCompactor.Run(track, terrainBeforeSubdivision, true).Split('\n')[0]);
+            Debug.Log("[Vượt Thác] Bịt chỗ nối chữ T: " + TerrainMeshCompactor.CloseAll(track, true).Split('\n')[0]);
+            foreach (var copy in terrainBeforeSubdivision.Values) Object.DestroyImmediate(copy);
             SaveMeshes(track, ctx.Meshes);
             SetStatic(root.gameObject);
             EditorSceneManager.MarkSceneDirty(track.gameObject.scene);
@@ -1544,6 +1561,24 @@ namespace VuotThac.EditorTools.Track
             return Vector3.SignedAngle(a, b, Vector3.up);
         }
 
+        static Dictionary<string, Mesh> SnapshotGround(RiverTrack track)
+        {
+            var copies = new Dictionary<string, Mesh>();
+            foreach (string group in new[] { "Terrain", "Mountains" })
+            {
+                var g = track.transform.Find("Generated/" + group);
+                if (g == null) continue;
+                foreach (var f in g.GetComponentsInChildren<MeshFilter>(true))
+                    if (f.sharedMesh != null && !copies.ContainsKey(f.sharedMesh.name))
+                    {
+                        var copy = Object.Instantiate(f.sharedMesh);
+                        copy.name = f.sharedMesh.name;
+                        copies[copy.name] = copy;
+                    }
+            }
+            return copies;
+        }
+
         static Transform Group(Transform root, string name)
         {
             var t = new GameObject(name).transform;
@@ -1651,3 +1686,9 @@ namespace VuotThac.EditorTools.Track
         }
     }
 }
+
+
+
+
+
+

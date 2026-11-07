@@ -58,6 +58,7 @@ namespace VuotThac.EditorTools.Boats
                 mat.SetFloat("_Surface",1);mat.SetFloat("_SrcBlend",5);mat.SetFloat("_DstBlend",10);mat.SetFloat("_ZWrite",0);
                 mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");mat.renderQueue=3000;EditorUtility.SetDirty(mat);
             }
+            Dress(mat, name);
             cache[name] = mat;
             return mat;
         }
@@ -125,7 +126,7 @@ namespace VuotThac.EditorTools.Boats
                 length = 1.9f, beam = 1.9f, depth = 0.42f,
                 build = m =>
                 {
-                    m.Bowl(0.95f, 0.42f, 0.12f, Bamboo, BambooDark, WoodDark);
+                    m.Bowl(0.95f, 0.42f, 0.12f, WeaveTar, Weave, WoodDark);
                     var ring = new List<Vector3>();
                     for (int i = 0; i < 16; i++)
                     {
@@ -205,8 +206,7 @@ namespace VuotThac.EditorTools.Boats
                         path.Add(new Vector3(Mathf.Cos(a) * radius, 0.05f, -straight + Mathf.Sin(a) * radius));
                     }
                     m.Tube(Orange, path, 0.25f, 8);
-                    m.Box(Gray, new Vector3(0f, -0.15f, 0f), new Vector3(1.3f, 0.08f, 3f));
-                    m.Box(Orange, new Vector3(0f, 0.02f, 0.2f), new Vector3(1.3f, 0.16f, 0.22f));
+                    m.Box(RubberGray, new Vector3(0f, -0.15f, 0f), new Vector3(1.3f, 0.08f, 3f));
                     Rower(m, new Vector3(-0.35f, -0.08f, 0.6f), Shirt("Teal", new Color(0.1f, 0.6f, 0.6f)), Paddle.Single, -1f);
                     Rower(m, new Vector3(0.35f, -0.08f, -0.6f), Shirt("Yellow", new Color(0.95f, 0.8f, 0.2f)), Paddle.Single, 1f);
                 },
@@ -233,7 +233,7 @@ namespace VuotThac.EditorTools.Boats
                 length = 6.6f, beam = 0.95f, depth = 0.32f,
                 build = m =>
                 {
-                    m.Hull(new BoatMesh.HullShape { length = 6.6f, beam = 0.95f, depth = 0.32f, freeboard = 0.2f, bowFullness = 1.7f, sternFullness = 1.7f, rocker = 0.18f, deckFrom = 2f }, Red, WoodLight, Gold);
+                    m.Hull(new BoatMesh.HullShape { length = 6.6f, beam = 0.95f, depth = 0.32f, freeboard = 0.2f, bowFullness = 1.7f, sternFullness = 1.7f, rocker = 0.18f, deckFrom = 2f }, DragonScales, WoodLight, Gold);
                     // Đầu rồng ở mũi
                     m.Cylinder(Red, new Vector3(0f, 0.35f, 3.05f), new Vector3(0f, 1.0f, 3.4f), 0.12f, 6);
                     m.Box(Gold, new Vector3(0f, 1.1f, 3.55f), new Vector3(0.3f, 0.28f, 0.48f));
@@ -248,7 +248,7 @@ namespace VuotThac.EditorTools.Boats
                     var shirt = Shirt("Festival", new Color(0.95f, 0.85f, 0.2f));
                     for (int i = 0; i < 4; i++)
                         Rower(m, new Vector3(0f, -0.12f, 1.6f - i * 1.15f), shirt, Paddle.Single, i % 2 == 0 ? 1f : -1f, false, false);
-                    m.Cylinder(Red, new Vector3(0f, 0.05f, 2.4f), new Vector3(0f, 0.4f, 2.4f), 0.2f, 8);
+                    m.Cylinder(Red, new Vector3(0f, 0.02f, 2.65f), new Vector3(0f, 0.2f, 2.65f), 0.17f, 16); // trống thấp ở mũi, không che tầm nhìn tay chèo đầu
                 },
             },
             new Spec
@@ -282,7 +282,7 @@ namespace VuotThac.EditorTools.Boats
                         float a0 = Mathf.PI * i / arcs, a1 = Mathf.PI * (i + 1) / arcs;
                         Vector3 p0 = new(Mathf.Cos(a0) * 0.7f, 0.3f + Mathf.Sin(a0) * 0.75f, 0f);
                         Vector3 p1 = new(Mathf.Cos(a1) * 0.7f, 0.3f + Mathf.Sin(a1) * 0.75f, 0f);
-                        m.DoubleQuad(Bamboo, p0 + Vector3.forward * 0.75f, p1 + Vector3.forward * 0.75f, p1 - Vector3.forward * 0.9f, p0 - Vector3.forward * 0.9f);
+                        m.DoubleQuad(Thatch, p0 + Vector3.forward * 0.75f, p1 + Vector3.forward * 0.75f, p1 - Vector3.forward * 0.9f, p0 - Vector3.forward * 0.9f);
                         foreach (float z in new[] { 0.75f, -0.08f, -0.9f })
                             m.Beam(BambooDark, p0 + Vector3.forward * z, p1 + Vector3.forward * z, 0.05f, 0.05f);
                     }
@@ -303,6 +303,8 @@ namespace VuotThac.EditorTools.Boats
             cache.Clear();
             closedBodyMesh=null;
             firstPersonArmsMesh=null;
+            gripHandMeshes=null;
+            BoatTextures.GenerateAll();
 
             if (AssetDatabase.LoadMainAssetAtPath(MeshAsset) != null)
                 AssetDatabase.DeleteAsset(MeshAsset);
@@ -386,6 +388,8 @@ namespace VuotThac.EditorTools.Boats
             BuildRealisticCrew(root,model.transform,spec);
             AddBoatFittings(model.transform,spec);
             BuildWaterOcclusion(model.transform,spec,builder.LastHull);
+            AddDetails(model.transform,spec,builder.LastHull);
+            AddWaterEffects(root);
 
             string prefabPath = $"{PrefabFolder}/{spec.id}.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);

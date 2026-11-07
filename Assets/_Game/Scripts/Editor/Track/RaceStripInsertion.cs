@@ -137,8 +137,9 @@ namespace VuotThac.EditorTools.Track
         public static int AlignCreekMouths(RiverTrack track)
         {
             var root=track.transform.Find("Generated");
-            var water=root.Find("Water/Water").GetComponent<MeshFilter>();
-            var probe=water.gameObject.AddComponent<MeshCollider>();probe.sharedMesh=water.sharedMesh;
+            var probes=new List<MeshCollider>();
+            foreach(var water in root.Find("Water").GetComponentsInChildren<MeshFilter>())
+            { var probe=water.gameObject.AddComponent<MeshCollider>();probe.sharedMesh=water.sharedMesh;probes.Add(probe); }
             int aligned=0;
             try
             {
@@ -153,7 +154,9 @@ namespace VuotThac.EditorTools.Track
                         var end=filter.transform.TransformPoint(vertices[(rows-1)*columns+col]);
                         float side=Mathf.Sign(end.x-track.CenterXAtMapZ(end.z));
                         var sample=end-Vector3.right*side*0.5f;
-                        if(!probe.Raycast(new Ray(sample+Vector3.up*10,Vector3.down),out var hit,20))continue;
+                        RaycastHit hit=new RaycastHit();bool found=false;
+                        foreach(var probe in probes)if(probe.Raycast(new Ray(sample+Vector3.up*100,Vector3.down),out hit,200)){found=true;break;}
+                        if(!found)continue;
                         float delta=hit.point.y-end.y;
                         for(int row=rows-17;row<rows;row++)
                         {
@@ -167,8 +170,9 @@ namespace VuotThac.EditorTools.Track
                     mesh.vertices=vertices;mesh.RecalculateBounds();mesh.RecalculateNormals();EditorUtility.SetDirty(mesh);
                 }
             }
-            finally{UnityEngine.Object.DestroyImmediate(probe);}
+            finally{foreach(var probe in probes)UnityEngine.Object.DestroyImmediate(probe);}
             return aligned;
         }
     }
 }
+

@@ -20,6 +20,7 @@
 
 # Mesh tự sinh và bản ngoại hình nhân vật rất nặng (trên 50 MB), lưu bằng LFS
 Assets/_Game/Generated/*.asset filter=lfs diff=lfs merge=lfs -text
+Assets/_Game/Generated/**/*.asset filter=lfs diff=lfs merge=lfs -text
 Assets/ThirdParty/**/Appearance/*.asset filter=lfs diff=lfs merge=lfs -text
 
 # File nhị phân nhỏ, lưu trực tiếp trong Git

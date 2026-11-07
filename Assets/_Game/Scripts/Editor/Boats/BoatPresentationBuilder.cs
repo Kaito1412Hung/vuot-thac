@@ -40,6 +40,8 @@ namespace VuotThac.EditorTools.Boats
             var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterials=mats;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
         }
         static Mesh closedBodyMesh;
+        static Mesh[] gripHandMeshes;
+        static Material[] gripHandMaterials;
         static Mesh firstPersonArmsMesh;
 
         /// <summary>Cắt riêng đôi tay từ mesh thân để hiện ở góc nhìn thứ nhất. Bỏ dữ liệu khuôn mặt vì tay không cần.</summary>
@@ -48,7 +50,8 @@ namespace VuotThac.EditorTools.Boats
             var armsMesh=Object.Instantiate(body.sharedMesh);armsMesh.name="FirstPersonArms";
             armsMesh.ClearBlendShapes();
             var weights=armsMesh.boneWeights;
-            var leftArm=animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);var rightArm=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            // Chỉ lấy cẳng tay: bắp tay và tay áo nằm sát mắt nên ở góc nhìn thứ nhất trông phình to, che tầm nhìn
+            var leftArm=animator.GetBoneTransform(HumanBodyBones.LeftLowerArm);var rightArm=animator.GetBoneTransform(HumanBodyBones.RightLowerArm);
             var armBones=new System.Collections.Generic.HashSet<int>();
             for(int bone=0;bone<body.bones.Length;bone++)if(body.bones[bone].IsChildOf(leftArm)||body.bones[bone].IsChildOf(rightArm))armBones.Add(bone);
             bool IsArm(int vertex)
@@ -56,7 +59,7 @@ namespace VuotThac.EditorTools.Boats
                 var w=weights[vertex];float total=0;
                 if(armBones.Contains(w.boneIndex0))total+=w.weight0;if(armBones.Contains(w.boneIndex1))total+=w.weight1;
                 if(armBones.Contains(w.boneIndex2))total+=w.weight2;if(armBones.Contains(w.boneIndex3))total+=w.weight3;
-                return total>0.55f;
+                return total>0.2f; // lấy cả phần da quanh khuỷu để không lộ vết cắt
             }
             for(int sub=0;sub<armsMesh.subMeshCount;sub++)
             {
@@ -92,8 +95,12 @@ namespace VuotThac.EditorTools.Boats
                 AssetDatabase.AddObjectToAsset(closedBodyMesh,MeshAsset);
             }
             body.sharedMesh=closedBodyMesh;
-            foreach(bool left in new[]{true,false})
+            // Lưới bàn tay nắm giống nhau cho mọi người chèo: tạo một lần rồi dùng chung (trước đây 15 bản sao)
+            if(gripHandMeshes==null)
             {
+                gripHandMeshes=new Mesh[2];
+                foreach(bool left in new[]{true,false})
+                {
                 var hand=new BoatMesh{smoothAll=true};
                 hand.Sphere(Skin,new Vector3(0,-0.018f,0.037f),new Vector3(0.044f,0.019f,0.046f),12,18);
                 hand.Sphere(Skin,Vector3.zero,new Vector3(0.026f,0.022f,0.022f),10,18);
@@ -112,8 +119,13 @@ namespace VuotThac.EditorTools.Boats
                 var thumbA=new Vector3(side*0.040f,-0.015f,0.022f);var thumbB=new Vector3(side*0.050f,0.012f,0.060f);var thumbC=new Vector3(side*0.018f,0.026f,0.083f);
                 hand.Cylinder(Skin,thumbA,thumbB,0.012f,16);hand.Sphere(Skin,thumbB,Vector3.one*0.012f,8,14);hand.Cylinder(Skin,thumbB,thumbC,0.010f,16);hand.Sphere(Skin,thumbC,Vector3.one*0.010f,8,14);
                 var mesh=hand.Build(left?"ClosedLeftHand":"ClosedRightHand",out var mats);AssetDatabase.AddObjectToAsset(mesh,MeshAsset);
+                gripHandMeshes[left?0:1]=mesh;gripHandMaterials=mats;
+                }
+            }
+            foreach(bool left in new[]{true,false})
+            {
                 var go=new GameObject("ClosedGripHand");go.transform.SetParent(animator.GetBoneTransform(left?HumanBodyBones.LeftHand:HumanBodyBones.RightHand),false);
-                go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterials=mats;
+                go.AddComponent<MeshFilter>().sharedMesh=gripHandMeshes[left?0:1];go.AddComponent<MeshRenderer>().sharedMaterials=gripHandMaterials;
             }
         }
         static void BuildRealisticCrew(GameObject boat,Transform parent,Spec spec)
@@ -155,10 +167,10 @@ namespace VuotThac.EditorTools.Boats
                 var vest=new BoatMesh();
                 foreach(float sign in new[]{-1f,1f})
                 {
-                    vest.Sphere(Orange,desiredHip+new Vector3(sign*0.105f,0.32f,0.145f),new Vector3(0.105f,0.20f,0.065f),12,20);
-                    vest.Box(White,desiredHip+new Vector3(sign*0.105f,0.43f,0.208f),new Vector3(0.035f,0.09f,0.012f));
+                    vest.Sphere(Orange,desiredHip+new Vector3(sign*0.1f,0.33f,0.135f),new Vector3(0.095f,0.19f,0.045f),12,20);
+                    vest.Box(White,desiredHip+new Vector3(sign*0.1f,0.43f,0.178f),new Vector3(0.03f,0.07f,0.01f));
                 }
-                vest.Sphere(Orange,desiredHip+new Vector3(0,0.31f,-0.13f),new Vector3(0.205f,0.20f,0.06f),12,20);
+                vest.Sphere(Orange,desiredHip+new Vector3(0,0.32f,-0.12f),new Vector3(0.19f,0.19f,0.042f),12,20);
                 var vestMesh=vest.Build("PFD_"+spec.id+"_"+index,out var vestMaterials);AssetDatabase.AddObjectToAsset(vestMesh,MeshAsset);
                 var vestGo=new GameObject("BuoyancyVest");vestGo.transform.SetParent(root.transform,false);vestGo.AddComponent<MeshFilter>().sharedMesh=vestMesh;vestGo.AddComponent<MeshRenderer>().sharedMaterials=vestMaterials;vestGo.transform.SetParent(chest,true);
                 foreach(float side in new[]{-1f,1f})
@@ -189,7 +201,7 @@ namespace VuotThac.EditorTools.Boats
             float bow=spec.length*0.34f;
             if(spec.id=="CaNoMay")
             {
-                var center=rowerSeats[0].position+new Vector3(0,0.3f,0.35f);
+                var center=rowerSeats[0].position+new Vector3(0,0.32f,0.55f); // vô lăng cách ngực khoảng nửa mét
                 var wheel=new System.Collections.Generic.List<Vector3>();
                 for(int i=0;i<40;i++){float angle=i*Mathf.PI*2/40;wheel.Add(center+new Vector3(Mathf.Cos(angle)*0.23f,Mathf.Sin(angle)*0.23f,0));}
                 details.Tube(Dark,wheel,0.014f,12);

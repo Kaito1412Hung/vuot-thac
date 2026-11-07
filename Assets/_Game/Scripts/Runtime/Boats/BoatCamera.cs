@@ -26,13 +26,17 @@ namespace VuotThac.Boats
         float followFov;
         float followNear = 0.3f;
         const float FirstPersonNear = 0.04f;
-        public void ToggleView(){firstPerson=!firstPerson;yaw=0;pitch=firstPerson?13:0;}
+        // Góc rộng vừa phải như mắt người; rộng quá thì tay và mái chèo ở gần bị kéo méo, phình to
+        const float FirstPersonFov = 70f;
+        // Hơi cúi nhìn xuống để thấy tay và mái chèo ở mép dưới khung hình, như khi đang chèo thật
+        const float FirstPersonPitch = 19f;
+        public void ToggleView(){firstPerson=!firstPerson;yaw=0;pitch=firstPerson?FirstPersonPitch:0;}
 
         /// <summary>Gắn camera vào thuyền, khoảng cách tự chỉnh theo chiều dài thuyền.</summary>
         public void Follow(Transform boat, float boatLength)
         {
             target = boat;
-            rower=boat.GetComponentInChildren<BoatRower>();yaw=0;pitch=firstPerson?13:0;
+            rower=boat.GetComponentInChildren<BoatRower>();yaw=0;pitch=firstPerson?FirstPersonPitch:0;
             if(viewCamera==null){viewCamera=GetComponent<Camera>();if(viewCamera!=null){followFov=viewCamera.fieldOfView;followNear=viewCamera.nearClipPlane;}}
             distance = Mathf.Max(7f, boatLength * 1.5f + 3f);
             height = 2.8f + boatLength * 0.2f;
@@ -56,14 +60,16 @@ namespace VuotThac.Boats
             {
                 rower.SetFirstPerson(true);
                 // Góc nhìn thứ nhất cần mặt phẳng cắt gần rất sát để không cắt mất tay và mái chèo
-                if(viewCamera!=null){viewCamera.fieldOfView=82;viewCamera.nearClipPlane=FirstPersonNear;}
+                if(viewCamera!=null){viewCamera.fieldOfView=FirstPersonFov;viewCamera.nearClipPlane=FirstPersonNear;}
                 Vector2 look=Vector2.zero;
                 if(Mouse.current!=null&&Mouse.current.rightButton.isPressed)look=Mouse.current.delta.ReadValue()*0.10f;
                 if(Gamepad.current!=null)look+=Gamepad.current.rightStick.ReadValue()*Time.deltaTime*90;
                 yaw=Mathf.Clamp(yaw+look.x,-110,110);pitch=Mathf.Clamp(pitch-look.y,-55,55);
                 transform.position=rower.eye.position;
-                var forward=Flat(target.forward);
-                transform.rotation=Quaternion.LookRotation(forward,Vector3.up)*Quaternion.Euler(pitch,yaw,0);
+                // Đầu người chèo lắc theo thuyền dập dềnh nhưng giữ đường chân trời ổn định một nửa, đỡ chóng mặt
+                var level=Quaternion.LookRotation(Flat(target.forward),Vector3.up);
+                var body=Quaternion.LookRotation(rower.transform.forward,rower.transform.up);
+                transform.rotation=Quaternion.Slerp(level,body,0.5f)*Quaternion.Euler(pitch,yaw,0);
                 return;
             }
 

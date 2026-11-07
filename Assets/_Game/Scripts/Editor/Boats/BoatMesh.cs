@@ -239,12 +239,13 @@ namespace VuotThac.EditorTools.Boats
                 for (int j = 0; j < 16; j++)
                     TriToward(outer, c, outerRing[0][j], outerRing[0][j + 1], c - Vector3.forward * 5f);
             }
-            for(int index=smoothStart;index<verts.Count;index++)smoothVertices.Add(index);
+            for(int index=smoothStart;index<verts.Count;index++){smoothVertices.Add(index);hullVertices.Add(index);}
         }
 
         /// <summary>Thúng chai tròn: lòng chảo, có vành.</summary>
         public void Bowl(float radius, float depth, float rimHeight, Material outer, Material inner, Material rim)
         {
+            int bowlStart = verts.Count;
             const int seg = 64;
             float[] rs = { 0f, 0.45f, 0.75f, 0.93f, 1f };
             float[] ys = { -depth, -depth * 0.9f, -depth * 0.6f, -depth * 0.12f, rimHeight };
@@ -266,7 +267,12 @@ namespace VuotThac.EditorTools.Boats
             int last = rs.Length - 1;
             for (int s = 0; s < seg; s++)
                 QuadToward(rim, P(last, s, 1f, 0f), P(last, s + 1, 1f, 0f), P(last, s + 1, 0.92f, 0f), P(last, s, 0.92f, 0f), above + Vector3.up * 5f);
+            // Thúng tròn: làm mượt mặt cong, UV quấn quanh tâm để nan đan chạy đều vòng quanh
+            for (int i = bowlStart; i < verts.Count; i++) { smoothVertices.Add(i); polarVertices.Add(i); }
+            polarRadius = radius;
         }
+        readonly HashSet<int> polarVertices = new();
+        float polarRadius = 1f;
 
         /// <summary>Ống tròn chạy theo một đường khép kín (phao cao su, vành trang trí).</summary>
         public void Tube(Material m, IList<Vector3> path, float radius, int sides = 8)
@@ -279,6 +285,11 @@ namespace VuotThac.EditorTools.Boats
         }
 
         readonly HashSet<int> smoothVertices=new();
+        /// <summary>Đỉnh của thân thuyền: UV liền mạch quanh mặt cắt để ván gỗ chạy dọc mạn.</summary>
+        readonly HashSet<int> hullVertices=new();
+        /// <summary>Đánh dấu các đỉnh thêm từ <paramref name="start"/> là một phần của thân thuyền (UV liền mạch).</summary>
+        public void MarkHull(int start){for(int i=start;i<verts.Count;i++)hullVertices.Add(i);}
+        public int VertexCount=>verts.Count;
         public bool smoothAll;
         public HullShape? LastHull { get; private set; }
 
@@ -302,7 +313,23 @@ namespace VuotThac.EditorTools.Boats
             }
             foreach(int index in smoothVertices)normals[index]=groups[Vector3Int.RoundToInt(verts[index]*10000)].normalized;
             mesh.normals=normals;
-            var uv=new List<Vector2>();foreach(var v in verts)uv.Add(new Vector2(v.x*2+v.y*0.3f,v.z*2));mesh.SetUVs(0,uv);
+            // UV tính theo mét. Thân thuyền: u dọc thân (z), v vòng quanh mặt cắt (y + |x|) nên ván và vân gỗ
+            // chạy dọc mạn, liền từ đáy lên mép. Các khối khác chiếu theo hướng mặt để không bị kéo dãn.
+            var uv=new List<Vector2>(verts.Count);
+            for(int i=0;i<verts.Count;i++)
+            {
+                var v=verts[i];
+                if(hullVertices.Contains(i)){uv.Add(new Vector2(v.z,v.y+Mathf.Abs(v.x)));continue;}
+                if(polarVertices.Contains(i))
+                {
+                    // Chu vi chia thành số nguyên ô texture để không lộ đường nối
+                    float tiles=Mathf.Max(1,Mathf.Round(Mathf.PI*2*polarRadius*1.6f))/1.6f;
+                    uv.Add(new Vector2((Mathf.Atan2(v.x,v.z)/(Mathf.PI*2)+0.5f)*tiles,v.y+new Vector2(v.x,v.z).magnitude));continue;
+                }
+                var n=normals[i];float ax=Mathf.Abs(n.x),ay=Mathf.Abs(n.y),az=Mathf.Abs(n.z);
+                uv.Add(az>=ax&&az>=ay?new Vector2(v.x,v.y):ay>=ax?new Vector2(v.z,v.x):new Vector2(v.z,v.y));
+            }
+            mesh.SetUVs(0,uv);mesh.RecalculateTangents();
             mesh.RecalculateBounds();
             materials = mats.ToArray();
             return mesh;

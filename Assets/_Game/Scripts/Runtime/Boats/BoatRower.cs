@@ -42,6 +42,49 @@ namespace VuotThac.Boats
             effort=Mathf.MoveTowards(effort,Mathf.Abs(throttle),Time.deltaTime*3);
             clock+=Time.deltaTime*Mathf.Lerp(0.3f,0.8f,effort)*(throttle<0?-1:1);
             Pose(clock+phaseOffset,effort);
+            UpdateBladeWater();
+        }
+
+        // ---------- Mái chèo chạm nước ----------
+
+        BoatWaterEffects fx;
+        float bladeLow,bladeHigh,swirlTimer;
+        bool bladeReady;
+        readonly bool[] under=new bool[2];
+        readonly Vector3[] lastEnd=new Vector3[2];
+
+        void UpdateBladeWater()
+        {
+            if(paddle==null||stroke==Stroke.None)return;
+            if(fx==null){fx=GetComponentInParent<BoatWaterEffects>();if(fx==null)return;}
+            if(!bladeReady)
+            {
+                var mf=paddle.GetComponent<MeshFilter>();if(mf==null||mf.sharedMesh==null)return;
+                bladeLow=mf.sharedMesh.bounds.min.y;bladeHigh=mf.sharedMesh.bounds.max.y;
+            }
+            float water=fx.WaterHeight,dt=Mathf.Max(Time.deltaTime,1e-4f);
+            var ends=new[]{paddle.TransformPoint(0,bladeLow,0),paddle.TransformPoint(0,bladeHigh,0)};
+            bool anyUnder=false;
+            for(int k=0;k<2;k++)
+            {
+                bool now=ends[k].y<water;
+                if(bladeReady&&now!=under[k])
+                {
+                    var other=ends[1-k];float u=Mathf.Approximately(other.y,ends[k].y)?1:Mathf.Clamp01((water-other.y)/(ends[k].y-other.y));
+                    var point=Vector3.Lerp(other,ends[k],u);var velocity=(ends[k]-lastEnd[k])/dt;
+                    // Lưỡi chèo cắm xuống thì bắn mạnh theo sức chèo, rút lên thì chỉ nhỏ giọt
+                    fx.Splash(point,velocity,now?Mathf.Lerp(0.35f,1f,effort):0.25f);
+                }
+                under[k]=now;lastEnd[k]=ends[k];anyUnder|=now;
+            }
+            bladeReady=true;
+            if(!anyUnder)return;
+            swirlTimer-=dt;
+            if(swirlTimer>0)return;
+            swirlTimer=stroke==Stroke.Pole?0.3f:0.1f;
+            int low=ends[0].y<ends[1].y?0:1;var top=ends[1-low];var tip=ends[low];
+            float t=Mathf.Approximately(top.y,tip.y)?1:Mathf.Clamp01((water-top.y)/(tip.y-top.y));
+            fx.Swirl(Vector3.Lerp(top,tip,t),Mathf.Max(0.2f,effort));
         }
         Transform Bone(HumanBodyBones bone)=>rig.GetBoneTransform(bone);
         public void SetFirstPerson(bool enabled)
@@ -57,7 +100,9 @@ namespace VuotThac.Boats
         }
         void UpdateEye()
         {
-            if(eye!=null)eye.position=head.position+transform.forward*(firstPersonView?-0.18f:0.08f)+transform.up*0.035f;
+            // Đặt đúng vị trí đôi mắt (trước tâm đầu khoảng 9 cm, cao hơn 7 cm). Trước đây mắt lùi ra sau gáy
+            // để thấy nhiều tay hơn, nhưng làm tay và mái chèo ở gần phình to, méo.
+            if(eye!=null)eye.position=head.position+transform.up*0.07f+transform.forward*0.09f;
         }
         public void Pose(float phase,float amount)
         {
@@ -88,11 +133,12 @@ namespace VuotThac.Boats
             Vector3 leftGrip,rightGrip;
             if(stroke==Stroke.None)
             {
-                leftGrip=hip+new Vector3(-0.22f,0.3f,0.35f);rightGrip=hip+new Vector3(0.22f,0.3f,0.35f);
+                leftGrip=hip+new Vector3(-0.21f,0.32f,0.53f);rightGrip=hip+new Vector3(0.21f,0.32f,0.53f);
             }
             else if(stroke==Stroke.Double)
             {
-                var center=hip+new Vector3(0,0.40f+recovery*0.13f,0.23f+reach*0.35f);
+                // Cán chèo đôi giữ trước ngực, tay gần duỗi
+                var center=hip+new Vector3(0,0.46f+recovery*0.12f,0.40f+reach*0.30f);
                 var axis=new Vector3(1,-activeSide*0.86f*amount,reach*0.12f).normalized;
                 paddle.localPosition=center;paddle.localRotation=Quaternion.FromToRotation(Vector3.up,axis);
                 leftGrip=center-axis*0.34f;rightGrip=center+axis*0.34f;
@@ -100,7 +146,8 @@ namespace VuotThac.Boats
             else
             {
                 float beam=boat!=null?boat.hullBeam:1;
-                var top=hip+new Vector3(activeSide*0.08f,(stroke==Stroke.Pole?0.70f:0.64f)+recovery*0.06f,0.18f+reach*0.20f);
+                // Tay trên cầm đầu cán ngang ngực, đưa ra trước gần nửa sải tay (không sát mặt)
+                var top=hip+new Vector3(activeSide*0.05f,(stroke==Stroke.Pole?0.58f:0.45f)+recovery*0.06f,0.44f+reach*0.2f);
                 var tip=hip+new Vector3(activeSide*Mathf.Max(0.72f,beam*0.5f+0.25f),-0.63f+recovery*0.65f,0.25f+reach*0.75f);
                 if(stroke==Stroke.Pole)tip=hip+new Vector3(activeSide*0.75f,-2,reach);
                 paddle.localPosition=(top+tip)*0.5f;paddle.localRotation=Quaternion.FromToRotation(Vector3.up,top-tip);

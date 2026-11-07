@@ -2,17 +2,17 @@
 
 Game đua thuyền 3D trên Android, làm cho đồ án cuối kỳ. Người chơi lái thuyền xuôi dòng sông qua ghềnh đá và thác nước, né đá, nhặt vật phẩm và đua với 5 thuyền AI. Thuyền đối thủ được huấn luyện bằng ML-Agents. Người chơi có thể đua cùng "bóng ma" của người giỏi nhất được tải về từ cloud.
 
-> **Trạng thái:** đang lên kế hoạch, chưa có gameplay. Các phần bên dưới là thiết kế dự kiến và sẽ được cập nhật khi làm xong.
+> **Trạng thái 07/11/2026:** đã có bản lái Suối Rừng với 10 thuyền, vật lý nổi, camera, điều khiển cảm ứng/nghiêng máy và kết thúc lượt chạy. Chi tiết triển khai, kiểm tra và APK xem [PHASE1.md](PHASE1.md). AI, cloud, Docker và các chế độ mở rộng bên dưới vẫn là thiết kế dự kiến.
 
 ## Đáp ứng yêu cầu đồ án
 
 | Yêu cầu | Cách đáp ứng | Trạng thái |
 |---|---|---|
-| **Unity** | Toàn bộ game 3D dùng URP: sông dựng theo spline, vật lý thuyền nổi, dòng chảy, thác | Mới tạo project |
+| **Unity** | Toàn bộ game 3D dùng URP: sông dựng theo spline, vật lý thuyền nổi, dòng chảy, thác | Đã có bản lái giai đoạn 1 |
 | **AI** | AI trong game, không dùng LLM. Thuyền đối thủ học lái bằng ML-Agents (học tăng cường), chạy suy luận ngay trên điện thoại. Có thêm một AI dự phòng dùng FSM và đi theo spline | Chưa làm |
 | **Cloud** | Backend trên cloud lưu và phát ghost của người chơi top, bảng xếp hạng theo từng đường đua, thử thách hằng ngày, lưu tiến độ | Chưa làm |
 | **Docker** | Docker Compose đóng gói API, database và reverse proxy. Một container riêng chạy huấn luyện ML-Agents, cố định đúng phiên bản Python mà ML-Agents yêu cầu | Chưa làm |
-| **Mobile** | Bản build Android màn hình ngang, nghiêng máy để lái, chạm để tăng tốc và dùng vật phẩm | Chưa làm |
+| **Mobile** | Android màn hình ngang, nghiêng máy hoặc nút bấm để lái, giữ nút chèo | Đã triển khai điều khiển; xem kết quả build và thử thiết bị trong PHASE1.md |
 
 ## Cách chơi dự kiến
 
@@ -180,7 +180,7 @@ Backend/          API và Docker Compose (sẽ thêm khi làm backend)
 ## Kế hoạch
 
 - [x] **Chuẩn bị:** README, Git
-- [ ] **Giai đoạn 1 - Bản lái đầu tiên:** một khúc sông dựng bằng spline, thuyền nổi, dòng chảy, va chạm đá, camera bám theo, nghiêng máy để lái. Build APK sớm để thử cảm giác lái trên điện thoại thật
+- [ ] **Giai đoạn 1 - Bản lái đầu tiên:** triển khai và APK đã xong, build Android 0 lỗi; đã có sông spline, thuyền nổi, dòng chảy, va chạm đá, camera và điều khiển nghiêng/cảm ứng. Còn xác nhận cảm giác lái trên điện thoại thật khi có thiết bị kết nối. Xem [PHASE1.md](PHASE1.md).
 - [ ] **Giai đoạn 2 - AI dự phòng:** thuyền đi theo spline, FSM, né đá, checkpoint, xếp hạng trong cuộc đua, rubber-banding
 - [ ] **Giai đoạn 3 - ML-Agents:** viết Agent, phần thưởng và curriculum, huấn luyện trong Docker, đưa model vào game, so sánh với AI dự phòng. Đặt mốc quyết định ở cuối giai đoạn này (xem phần Rủi ro)
 - [ ] **Giai đoạn 4 - Bản chơi đầy đủ:** vật phẩm, 3 đường đua, thác, chế độ Cúp, giao diện, thắng thua

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216785faa2a9ab54eacc84d1283cd904, type: 3}
+  m_Name: TamBan
+  m_EditorClassIdentifier: VuotThac.Runtime::VuotThac.Boats.BoatDefinition
+  displayName: "Thuy\u1EC1n Tam B\u1EA3n"
+  description: "Thuy\u1EC1n ch\u1EDF h\xE0ng c\xF3 m\xE1i che b\u1EB1ng tre, ng\u01B0\u1EDDi
+    l\xE1i \u0111\u1EE9ng ch\xE8o \u1EDF \u0111u\xF4i. Ch\u1EAFc ch\u1EAFn v\xE0
+    d\u1EC5 \u0111i\u1EC1u khi\u1EC3n."
+  prefab: {fileID: 4720476723286828743, guid: 08d2f6e5a0a4b7a46a09876ceb5d0af0, type: 3}
+  speed: 6
+  acceleration: 5
+  handling: 6
+  toughness: 7

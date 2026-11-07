@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216785faa2a9ab54eacc84d1283cd904, type: 3}
+  m_Name: ThuyenRong
+  m_EditorClassIdentifier: VuotThac.Runtime::VuotThac.Boats.BoatDefinition
+  displayName: "Thuy\u1EC1n R\u1ED3ng"
+  description: "Thuy\u1EC1n \u0111ua l\u1EC5 h\u1ED9i d\xE0i nh\u1EA5t, b\u1ED1n
+    tay ch\xE8o c\xF9ng nh\u1ECBp. Nhanh nh\u1EA5t khi \u0111\xE3 l\u1EA5y \u0111\xE0
+    nh\u01B0ng r\u1EA5t kh\xF3 quay \u0111\u1EA7u."
+  prefab: {fileID: 4839575216737117512, guid: d58feef136aae144b9466561a4537376, type: 3}
+  speed: 10
+  acceleration: 5
+  handling: 3
+  toughness: 6

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216785faa2a9ab54eacc84d1283cd904, type: 3}
+  m_Name: Kayak
+  m_EditorClassIdentifier: VuotThac.Runtime::VuotThac.Boats.BoatDefinition
+  displayName: Kayak
+  description: "Nh\u1EB9 v\xE0 l\u01B0\u1EDBt nhanh, m\xE1i ch\xE8o \u0111\xF4i t\u0103ng
+    t\u1ED1c r\u1EA5t g\u1EAFt. \u0110\u1ED5i l\u1EA1i v\u1ECF m\u1ECFng, \u0111\xE2m
+    \u0111\xE1 l\xE0 m\u1EA5t \u0111\xE0 nhi\u1EC1u."
+  prefab: {fileID: 6116981637977705280, guid: 488146938efcf7f4bbca8d16ecd83035, type: 3}
+  speed: 7
+  acceleration: 8
+  handling: 7
+  toughness: 2

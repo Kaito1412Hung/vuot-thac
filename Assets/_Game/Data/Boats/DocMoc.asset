@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216785faa2a9ab54eacc84d1283cd904, type: 3}
+  m_Name: DocMoc
+  m_EditorClassIdentifier: VuotThac.Runtime::VuotThac.Boats.BoatDefinition
+  displayName: "Thuy\u1EC1n \u0110\u1ED9c M\u1ED9c"
+  description: "\u0110\u1EE5c t\u1EEB nguy\xEAn m\u1ED9t th\xE2n c\xE2y l\u1EDBn
+    n\xEAn r\u1EA5t n\u1EB7ng v\xE0 ch\u1EAFc. Va \u0111\xE1 g\u1EA7n nh\u01B0 kh\xF4ng
+    h\u1EC1 h\u1EA5n g\xEC."
+  prefab: {fileID: 715487872739040793, guid: 4ad0dd31991e19e4b86f89370b7ca30c, type: 3}
+  speed: 6
+  acceleration: 4
+  handling: 5
+  toughness: 9

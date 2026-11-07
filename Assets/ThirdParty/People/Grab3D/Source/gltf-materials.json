@@ -1,0 +1,50 @@
+{
+  "materials": [
+    {
+      "name": "Material_0",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      },
+      "normalTexture": {
+        "index": 1
+      }
+    }
+  ],
+  "textures": [
+    {
+      "source": 1,
+      "sampler": 0
+    },
+    {
+      "source": 0,
+      "sampler": 0
+    },
+    {
+      "source": 2,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "rig_normal",
+      "mimeType": "image/jpeg",
+      "bufferView": 0
+    },
+    {
+      "name": "rig_basecolor",
+      "mimeType": "image/jpeg",
+      "bufferView": 1
+    },
+    {
+      "name": "rig_metallic-rig_roughness",
+      "mimeType": "image/jpeg",
+      "bufferView": 2
+    }
+  ]
+}

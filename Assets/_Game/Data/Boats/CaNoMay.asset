@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 216785faa2a9ab54eacc84d1283cd904, type: 3}
+  m_Name: CaNoMay
+  m_EditorClassIdentifier: VuotThac.Runtime::VuotThac.Boats.BoatDefinition
+  displayName: "Ca N\xF4 M\xE1y"
+  description: "C\xF3 g\u1EAFn m\xE1y n\u1ED5 \u1EDF \u0111u\xF4i n\xEAn ch\u1EA1y
+    r\u1EA5t nhanh tr\xEAn \u0111o\u1EA1n th\u1EB3ng. Cua kh\xE1 n\u1EB7ng tay, ph\u1EA3i
+    t\xEDnh tr\u01B0\u1EDBc."
+  prefab: {fileID: 5949252715155452393, guid: 80691fbe0c9ac1f4881dddd165834af2, type: 3}
+  speed: 9
+  acceleration: 7
+  handling: 4
+  toughness: 4

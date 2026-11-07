@@ -1,0 +1,73 @@
+# Unity tự tạo lại
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Ảnh chụp thử map, không đưa lên Git
+/Captures/
+
+# Bản sao lưu tạm trước mỗi lần dựng lại map, rất nặng
+/Backups/
+
+# Bản build
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+
+# Cache và file sinh tự động của Unity
+/[Aa]ssets/AssetStoreTools*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+/[Aa]ssets/[Ss]creenshots/
+/[Aa]ssets/[Ss]creenshots.meta
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Bí mật
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pem
+
+# Backend Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.coverage
+
+# Hệ điều hành và công cụ
+.DS_Store
+Thumbs.db
+.claude/settings.local.json

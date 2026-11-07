@@ -67,6 +67,14 @@ namespace VuotThac.Track
         [Tooltip("Tốc độ nước chảy ở giữa sông chính, mét mỗi giây. Sát bờ chảy chậm hơn")]
         [Min(0f)] public float flowSpeed = 2.5f;
 
+        [Header("Thác và hầm")]
+        [Tooltip("Các thác nước trên sông chính, thuyền lao xuống theo dòng nước")]
+        public System.Collections.Generic.List<RiverFall> falls = new();
+        [Tooltip("Các hầm xuyên núi trên sông chính")]
+        public System.Collections.Generic.List<RiverTunnel> tunnels = new();
+        [Tooltip("Chặn sông chính bằng gỗ và đá ở những mét này, buộc người chơi rẽ vào nhánh")]
+        public System.Collections.Generic.List<float> barriers = new();
+
         [Header("Nhánh sông")]
         [Tooltip("Các nhánh rẽ khỏi sông chính rồi nhập lại, tạo đường tắt hoặc đường vòng")]
         public System.Collections.Generic.List<RiverBranch> branches = new();
@@ -234,6 +242,94 @@ namespace VuotThac.Track
 
                 distances[i] = i == 0 ? 0f : distances[i - 1] + Vector3.Distance(points[i - 1], points[i]);
             }
+
+            // Thác nước: nâng mặt nước phía trên mỗi thác. Làm sau khi tính quãng đường để quãng đường vẫn theo mặt phẳng ngang
+            if (falls != null && falls.Count > 0)
+                for (int i = 0; i < count; i++)
+                    points[i].y += FallOffset(distances[i]);
+        }
+
+        /// <summary>Phía trên mỗi thác, mặt nước cao hơn spline gốc bao nhiêu mét.</summary>
+        public float FallOffset(float distance)
+        {
+            if (falls == null)
+                return 0f;
+            float offset = 0f;
+            foreach (var f in falls)
+            {
+                if (f == null)
+                    continue;
+                // 0 ở đầu thác, 1 ở chân thác. Đoạn đầu thoải rồi dốc dần, cuối cùng đổ gần như thẳng đứng
+                float x = Mathf.Clamp01((distance - (f.distance - f.length * 0.5f)) / f.length);
+                float drop = x * x * (3f - 2f * x);
+                drop = Mathf.Lerp(drop, drop * drop, 0.5f);
+                offset += f.height * (1f - drop);
+            }
+            return offset;
+        }
+
+        /// <summary>Nước chảy nhanh gấp bao nhiêu lần ở gần thác: ghềnh phía trên và dòng nước đổ.</summary>
+        public float FallFlowBoost(float distance)
+        {
+            if (falls == null)
+                return 1f;
+            float boost = 1f;
+            foreach (var f in falls)
+            {
+                if (f == null)
+                    continue;
+                float near = 1f - Mathf.Clamp01(Mathf.Abs(distance - f.distance) / (f.length * 1.5f + 12f));
+                boost = Mathf.Max(boost, 1f + 2.5f * near * near);
+            }
+            return boost;
+        }
+
+        /// <summary>Quãng sông này có nằm gần thác hay hầm nào không (để tránh đặt cầu, nhà, đá ở đó).</summary>
+        public bool IsNearFeature(float distance, float margin)
+        {
+            if (falls != null)
+                foreach (var f in falls)
+                    if (f != null && Mathf.Abs(distance - f.distance) < f.length * 0.5f + margin)
+                        return true;
+            if (tunnels != null)
+                foreach (var t in tunnels)
+                    if (t != null && Mathf.Abs(distance - t.distance) < t.length * 0.5f + margin)
+                        return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Độ cao dãy núi chắn ngang của các hầm tại một điểm (tọa độ trước khi mở rộng lòng sông).
+        /// Trả về float.MinValue nếu điểm không nằm trong dãy núi nào.
+        /// Đỉnh núi phẳng trên suốt chiều dài hầm rồi thoải dần xuống hai phía.
+        /// </summary>
+        public float RidgeHeight(Vector3 mapPos, RiverSample s)
+        {
+            if (tunnels == null || tunnels.Count == 0)
+                return float.MinValue;
+            float best = float.MinValue;
+            foreach (var t in tunnels)
+            {
+                if (t == null)
+                    continue;
+                float along = Mathf.Abs(s.distance - t.distance);
+                float half = t.length * 0.5f;
+                // Trên suốt chiều dài hang núi cao nguyên, ra ngoài thì sườn núi thoải dần như chân núi thật
+                const float foot = 24f;
+                float over = Mathf.Max(0f, along - half);
+                float f = Mathf.Exp(-(over / foot) * (over / foot));
+                if (f < 0.01f)
+                    continue;
+
+                // Đỉnh lởm chởm: nhiễu dạng sống núi giống dãy núi bao quanh, cộng một lớp gồ ghề nhỏ
+                float n = Mathf.PerlinNoise(mapPos.x * 0.03f + t.distance * 0.13f, mapPos.z * 0.03f + t.distance * 0.07f);
+                float ridged = 1f - Mathf.Abs(2f * n - 1f);
+                float bumps = Mathf.PerlinNoise(mapPos.x * 0.09f, mapPos.z * 0.09f + t.distance) - 0.5f;
+                float peak = t.ridgeHeight * (0.6f + 0.5f * ridged * ridged + 0.15f * bumps);
+                float ground = s.WaterHeight + bankHeight;
+                best = Mathf.Max(best, ground + (peak - bankHeight) * f);
+            }
+            return best;
         }
 
         /// <summary>Tìm điểm trên tâm sông gần <paramref name="worldPos"/> nhất, chỉ xét mặt phẳng ngang.</summary>
@@ -303,7 +399,8 @@ namespace VuotThac.Track
             Vector3 p = BeforeRaceInsertion(worldPos);
             var s = GetNearest(p, ref mainHint);
             float edge = s.horizontalDistance - HalfWidth;
-            var info = MakeWater(s, HalfWidth, flowSpeed, -1, edge);
+            // Gần thác nước chảy xiết hơn để thuyền bị cuốn qua mép thác
+            var info = MakeWater(s, HalfWidth, flowSpeed * FallFlowBoost(s.distance), -1, edge);
 
             if (branches != null)
             {
@@ -393,7 +490,53 @@ namespace VuotThac.Track
             var s = GetNearest(worldPos);
             distanceFromCenter = s.horizontalDistance;
             float height = TerrainHeightAt(worldPos, s.horizontalDistance, s.WaterHeight);
+
+            // Dãy núi của các hầm: chỉ dựng ngoài lòng sông và bờ, phần trên mặt nước do mesh hầm che
+            if (tunnels != null && tunnels.Count > 0)
+            {
+                Vector3 mp = BeforeRaceInsertion(worldPos);
+                var ms = appliedRaceStripWidth > 0 ? GetNearest(mp) : s;
+                if (ms.horizontalDistance > HalfWidth + bankWidth + 0.5f)
+                    height = Mathf.Max(height, RidgeHeight(mp, ms));
+            }
+
             return CarveBranches(worldPos, height, ref distanceFromCenter);
+        }
+
+        /// <summary>
+        /// Độ cao dãy núi đắp trên các nhánh tại một điểm (tọa độ trước khi mở rộng lòng sông), chưa đào lòng nhánh.
+        /// Núi thấp dần khi tới gần sông chính để không lấp lòng sông và bờ. Trả về float.MinValue nếu không có núi.
+        /// </summary>
+        public float BranchRidgeHeight(Vector3 mapPos)
+        {
+            if (branches == null || branches.Count == 0)
+                return float.MinValue;
+            EnsureBranches();
+            float best = float.MinValue;
+            foreach (var b in branches)
+            {
+                if (b == null || !b.IsBuilt || b.mountainHeight <= 0f)
+                    continue;
+                float h = b.RidgeHeight(mapPos, b.GetNearest(mapPos));
+                if (h <= best)
+                    continue;
+                var ms = GetNearest(mapPos);
+                float clear = HalfWidth + bankWidth;
+                if (ms.horizontalDistance < clear + 4f)
+                    continue;
+                // Sát bờ sông chính thì hạ núi về ngang mặt bờ, xa dần mới cao lên hết cỡ
+                float keep = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(clear + 4f, clear + 40f, ms.horizontalDistance));
+                float ground = ms.WaterHeight + bankHeight;
+                best = Mathf.Max(best, ground + (h - ground) * keep);
+            }
+            if (best == float.MinValue)
+                return best;
+            // Suối từ thác núi vẫn khoét lòng xuyên qua núi đắp, không bị núi lấp mất
+            if (waterfallLandforms == null) RefreshWaterfallLandforms();
+            foreach (var profile in waterfallLandforms)
+                if (profile != null)
+                    best = Mathf.Min(best, profile.ShapeSurface(mapPos, best));
+            return best;
         }
 
         /// <summary>
@@ -409,22 +552,49 @@ namespace VuotThac.Track
 
             EnsureBranches();
             Vector3 p = BeforeRaceInsertion(worldPos);
+            height = Mathf.Max(height, BranchRidgeHeight(p));
             foreach (var b in branches)
             {
                 if (b == null || !b.IsBuilt)
                     continue;
 
                 var bs = b.GetNearest(p);
+                // Đoạn đi ngầm trong núi: chỉ khoét một rãnh hẹp đúng bằng bề ngang vỏ hang để mặt đất
+                // không dựng thành bức tường chắn ngang lòng hang. Rãnh nằm khuất dưới mái hang,
+                // còn mặt núi xung quanh vẫn giữ nguyên độ cao.
+                if (b.IsUndergroundAt(bs.distance))
+                {
+                    float hole = b.HalfWidth + waterSurfaceExtraWidth + 0.8f + 6f;
+                    if (bs.horizontalDistance < hole)
+                    {
+                        height = Mathf.Min(height, bs.WaterHeight - b.depth);
+                        float inside = bs.horizontalDistance - hole + HalfWidth - 1f;
+                        if (inside < distanceFromCenter)
+                            distanceFromCenter = inside;
+                    }
+                    continue;
+                }
                 float equivalent = bs.horizontalDistance - b.HalfWidth + HalfWidth;
                 if (equivalent < distanceFromCenter)
                     distanceFromCenter = equivalent;
 
                 // Ngoài vùng ảnh hưởng thì giữ nguyên địa hình, trong vùng thì hạ dần xuống thành thung lũng nhỏ
                 float outer = b.HalfWidth + bankWidth + 30f;
+                float full = b.HalfWidth + bankWidth + 8f;
+                // Gần cửa hang thì thung lũng hẹp dần thành hẻm đá vừa bằng rãnh hang, để sườn núi khép lại quanh
+                // miệng hang thay vì bị cắt thành một vách thẳng đứng ngay chỗ nhánh bắt đầu đi ngầm
+                float toCave = b.DistanceToCave(bs.distance);
+                if (toCave < 45f)
+                {
+                    float k = Mathf.SmoothStep(0f, 1f, toCave / 45f);
+                    float hole = b.HalfWidth + waterSurfaceExtraWidth + 0.8f + 6f;
+                    outer = Mathf.Lerp(hole + 4f, outer, k);
+                    full = Mathf.Lerp(Mathf.Min(full, hole), full, k);
+                }
                 if (bs.horizontalDistance >= outer)
                     continue;
                 float channel = ChannelProfile(p, bs.horizontalDistance, bs.WaterHeight, b.HalfWidth, b.depth);
-                float w = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(outer, b.HalfWidth + bankWidth + 8f, bs.horizontalDistance));
+                float w = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(outer, full, bs.horizontalDistance));
                 height = Mathf.Lerp(height, Mathf.Min(height, channel), w);
             }
             return height;

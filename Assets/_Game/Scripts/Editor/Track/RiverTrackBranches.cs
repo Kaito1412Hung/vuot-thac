@@ -78,6 +78,10 @@ namespace VuotThac.EditorTools.Track
                         var s = b.GetNearest(p);
                         if (s.horizontalDistance > b.HalfWidth + 0.5f)
                             continue;
+                        // Suối gặp đoạn nhánh đang đi ngầm trong núi: khoét thủng núi thành một giếng trời
+                        // ngay chỗ đó để suối đổ vào nhánh, hang tách làm hai đoạn hai bên giếng
+                        if (b.IsUndergroundAt(s.distance))
+                            OpenBranchSkylight(b, s.distance, 15f);
                         // Kéo suối vào sâu trong nhánh thêm 2 m để hai mặt nước nối liền
                         profile.riverRun = -z + 2f;
                         profile.riverHeight = s.WaterHeight;
@@ -91,6 +95,20 @@ namespace VuotThac.EditorTools.Track
                 if (!found)
                     return;
             }
+        }
+
+        /// <summary>Bỏ đánh dấu đi ngầm quanh mét <paramref name="distance"/> của nhánh, rồi bỏ luôn các đoạn hang còn lại quá ngắn.</summary>
+        static void OpenBranchSkylight(RiverBranch b, float distance, float halfLength)
+        {
+            if (b.underground == null)
+                return;
+            for (int i = 0; i < b.underground.Length; i++)
+                if (Mathf.Abs(b.distances[i] - distance) < halfLength)
+                    b.underground[i] = false;
+            float step = b.Length / Mathf.Max(1, b.points.Length - 1);
+            FillRuns(b.underground, true, Mathf.CeilToInt(20f / step));
+            b.MarkUndergroundChanged();
+            Debug.Log($"[Vượt Thác] Nhánh '{b.name}': mở giếng trời ở mét {distance:0} cho suối từ thác đổ vào.");
         }
 
         /// <summary>Độ cao mặt nước gần nhất, tính cả sông chính lẫn các nhánh.</summary>
@@ -251,6 +269,9 @@ namespace VuotThac.EditorTools.Track
             for (int i = 0; i < target; i++)
             {
                 var s = b.EvaluateAtDistance(Range(rng, 12f, b.Length - 12f));
+                // Trong hang tối không có sậy
+                if (b.IsUndergroundAt(s.distance))
+                    continue;
                 float side = rng.NextDouble() < 0.5 ? -1f : 1f;
                 Vector3 p = s.center + s.right * side * (b.HalfWidth + Range(rng, -0.6f, 0.6f));
                 var go = CreateMeshObject($"BranchReeds_{count:000}", ctx.Props["Reeds"], new[] { ctx.Mats.Reed, ctx.Mats.Trunk }, parent);
@@ -268,6 +289,9 @@ namespace VuotThac.EditorTools.Track
             for (int i = 0; i < clusters; i++)
             {
                 var s = b.EvaluateAtDistance(Range(rng, 15f, b.Length - 15f));
+                // Lá súng cần nắng, không mọc trong hang
+                if (b.IsUndergroundAt(s.distance))
+                    continue;
                 float side = rng.NextDouble() < 0.5 ? -1f : 1f;
                 Vector3 c = s.center + s.right * side * (b.HalfWidth - Range(rng, 0.8f, 2f));
                 int n = rng.Next(3, 6);

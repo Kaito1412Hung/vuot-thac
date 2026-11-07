@@ -80,6 +80,68 @@ namespace VuotThac.EditorTools.Track
             Selection.activeGameObject = river;
         }
 
+        /// <summary>
+        /// Gắn 3 thác nước và 3 hang động xuyên núi cho Đường 1 rồi dựng lại map.
+        /// Vị trí chọn để tránh cầu, làng và chỗ rẽ của các nhánh sông.
+        /// </summary>
+        [MenuItem("Vượt Thác/Đặt thác và hầm cho Đường 1")]
+        public static void SetupTrack01Features()
+        {
+            var track = Object.FindAnyObjectByType<RiverTrack>();
+            if (track == null)
+            {
+                Debug.LogWarning("[Vượt Thác] Scene đang mở không có RiverTrack nào.");
+                return;
+            }
+
+            Undo.RecordObject(track, "Đặt thác và hầm");
+            track.falls = new System.Collections.Generic.List<RiverFall>
+            {
+                new() { distance = 150f, height = 4f, length = 9f },
+                new() { distance = 575f, height = 5f, length = 10f },
+                new() { distance = 760f, height = 4.5f, length = 9f },
+            };
+            track.tunnels = new System.Collections.Generic.List<RiverTunnel>
+            {
+                // Đặt lệch khỏi các suối từ thác núi (mét 172, 363, 562, 769) và chỗ nhánh đường vòng nhập lại (mét 850)
+                new() { distance = 480f, length = 56f, ridgeHeight = 50f, ceilingHeight = 13f },
+                new() { distance = 890f, length = 40f, ridgeHeight = 40f, ceilingHeight = 11f },
+            };
+
+            // Ngay sau xuất phát, sông chính bị gỗ và đá chặn lại. Người chơi chọn rẽ trái hoặc phải,
+            // chạy vào dãy núi cao nhất, chui qua hang dài trong lòng núi rồi vòng ra nhập lại sông chính.
+            track.barriers = new System.Collections.Generic.List<float> { 128f };
+            var longRoute = track.branches?.Find(b => b != null && b.fromDistance > 600f);
+            track.branches = new System.Collections.Generic.List<RiverBranch>
+            {
+                new()
+                {
+                    name = "Hang Núi Trái", fromDistance = 105f, toDistance = 400f, side = -1, width = 12f, depth = 1.5f,
+                    // Bờ trái nằm phía trong khúc cua lớn nên dù phình xa, đường vẫn ngắn (khoảng 320 m), nước chảy chậm hơn
+                    bulge = 165f, wiggle = 6f, minLandGap = 10f, rocksPer100m = 2f, flowMultiplier = 1.15f, signColor = 0, caveCeiling = 9f,
+                    // Chỗ này chỉ là đồi thấp, đắp thêm núi để hang nằm hẳn trong lòng núi
+                    mountainHeight = 30f,
+                },
+                new()
+                {
+                    name = "Hang Núi Phải", fromDistance = 105f, toDistance = 400f, side = 1, width = 12f, depth = 1.5f,
+                    // Bờ phải nằm phía ngoài khúc cua nên chỉ phình vừa phải cho hai đường dài gần bằng nhau.
+                    // Chỗ đó chưa có núi cao nên đắp thêm một dãy núi ngay trên nhánh để có hang chui qua.
+                    bulge = 60f, wiggle = -15f, minLandGap = 10f, rocksPer100m = 3f, flowMultiplier = 1.5f, signColor = 1, caveCeiling = 9f,
+                    mountainHeight = 38f,
+                },
+                longRoute ?? new()
+                {
+                    name = "Đường vòng Rừng Thông", fromDistance = 665f, toDistance = 850f, side = 1, width = 12f, depth = 1.5f,
+                    bulge = 50f, wiggle = 6f, minLandGap = 10f, rocksPer100m = 2f, signColor = 1,
+                },
+            };
+            EditorUtility.SetDirty(track);
+            track.InvalidateCache();
+            RiverTrackBuilder.Build(track);
+            EditorSceneManager.SaveScene(track.gameObject.scene);
+        }
+
         static void SetupLighting()
         {
             var sun = Object.FindObjectsByType<Light>().FirstOrDefault(l => l.type == LightType.Directional);

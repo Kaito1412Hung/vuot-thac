@@ -81,9 +81,13 @@ namespace VuotThac.EditorTools.Track
             root.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
 
             track.appliedRaceStripWidth=0;
+            // Biết trước đoạn nhánh nào đi ngầm trong núi, vì mọi bước đào đất và dựng núi phía sau đều cần
+            PrepareBranchUnderground(ctx);
             PrepareMountainWaterfall(ctx);
             PrepareForestCave(ctx);
+            DisableCavesOverBranches(ctx);
             PrepareBranches(ctx);
+            PrepareFeatures(ctx);
             BuildTerrain(ctx, Group(root, "Terrain"));
             var waterGroup = Group(root, "Water");
             BuildWater(ctx, waterGroup);
@@ -129,6 +133,11 @@ namespace VuotThac.EditorTools.Track
             }
 
             if(track.insertedRaceStripWidth>0)RaceStripInsertion.Apply(track,track.insertedRaceStripWidth,ctx.Meshes);
+            // Hầm và chi tiết thác dựng sau khi mở rộng lòng sông để ôm đúng mép nước thật
+            BuildTunnels(ctx, Group(root, "Tunnels"));
+            BuildBranchCaves(ctx, Group(root, "BranchCaves"));
+            BuildBarriers(ctx, Group(root, "Barriers"));
+            BuildFallDetails(ctx, Group(root, "Falls"));
             SaveMeshes(track, ctx.Meshes);
             SetStatic(root.gameObject);
             EditorSceneManager.MarkSceneDirty(track.gameObject.scene);
@@ -243,17 +252,27 @@ namespace VuotThac.EditorTools.Track
         {
             var track = ctx.Track;
             float extent = track.HalfWidth + track.waterSurfaceExtraWidth;
-            int rows = Mathf.CeilToInt(track.Length / WaterStep) + 1;
             int cols = WaterColumns + 1;
+
+            // Lấy mẫu dày hơn ở thác để mặt nước đổ xuống mượt, không gãy khúc
+            var rowDistances = new List<float>();
+            for (float d = 0f; d < track.Length; )
+            {
+                rowDistances.Add(d);
+                d += track.IsNearFeature(d, 4f) && FallNear(track, d) ? 0.6f : WaterStep;
+            }
+            rowDistances.Add(track.Length);
+            int rows = rowDistances.Count;
 
             var verts = new List<Vector3>(rows * cols);
             var normals = new List<Vector3>(rows * cols);
             var uvs = new List<Vector2>(rows * cols);
             var tris = new List<int>((rows - 1) * WaterColumns * 6);
+            var fallTris = new List<int>();
 
             for (int r = 0; r < rows; r++)
             {
-                float d = Mathf.Min(r * WaterStep, track.Length);
+                float d = rowDistances[r];
                 var s = track.EvaluateAtDistance(d);
                 for (int c = 0; c < cols; c++)
                 {
@@ -267,11 +286,15 @@ namespace VuotThac.EditorTools.Track
 
             for (int r = 0; r < rows - 1; r++)
             {
+                // Đoạn nước dốc (thác đổ) dùng vật liệu nước đổ trắng bọt, phần còn lại là mặt sông bình thường
+                float rise = verts[r * cols].y - verts[(r + 1) * cols].y;
+                float run = Mathf.Max(0.01f, rowDistances[r + 1] - rowDistances[r]);
+                var list = rise / run > 0.18f ? fallTris : tris;
                 for (int c = 0; c < WaterColumns; c++)
                 {
                     int a = r * cols + c, b = a + cols, cc = b + 1, d = a + 1;
-                    tris.Add(a); tris.Add(b); tris.Add(cc);
-                    tris.Add(a); tris.Add(cc); tris.Add(d);
+                    list.Add(a); list.Add(b); list.Add(cc);
+                    list.Add(a); list.Add(cc); list.Add(d);
                 }
             }
 
@@ -279,11 +302,17 @@ namespace VuotThac.EditorTools.Track
             mesh.SetVertices(verts);
             mesh.SetNormals(normals);
             mesh.SetUVs(0, uvs);
+            mesh.subMeshCount = 2;
             mesh.SetTriangles(tris, 0);
+            mesh.SetTriangles(fallTris, 1);
+            mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             ctx.Meshes.Add(mesh);
 
-            var go = CreateMeshObject("Water", mesh, new[] { ctx.Mats.Water }, parent);
+            var fallMat = FlowMaterial("RiverFallWater", new Color(0.2f, 0.55f, 0.7f, 0.95f), 0.9f, 0.85f);
+            fallMat.SetFloat("_Cascade", 1f);
+            EditorUtility.SetDirty(fallMat);
+            var go = CreateMeshObject("Water", mesh, new[] { ctx.Mats.Water, fallMat }, parent);
             go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
         }
 
@@ -357,6 +386,9 @@ namespace VuotThac.EditorTools.Track
             float best = from, bestTurn = float.MaxValue;
             for (float d = from; d <= to; d += 5f)
             {
+                // Không bắc cầu ngay chỗ thác hay hầm
+                if (track.IsNearFeature(d, 35f))
+                    continue;
                 float turn = Mathf.Abs(TurnAngle(track, d - 15f, d + 15f));
                 if (turn < bestTurn)
                 {
@@ -709,12 +741,23 @@ namespace VuotThac.EditorTools.Track
         const float MountainOverlap = 8f;
 
         /// <summary>Độ cao của dãy núi tại một điểm, đã biết khoảng cách tới tâm sông.</summary>
+        /// <summary>Độ cao dãy núi, đã đào lòng các nhánh sông chạy lộ thiên qua chân núi.</summary>
         static float MountainHeight(RiverTrack track, Vector3 p, RiverSample s)
+        {
+            float h = MountainHeightRaw(track, p, s);
+            float unused = float.MaxValue;
+            return track.CarveBranches(p, h, ref unused);
+        }
+
+        /// <summary>Độ cao dãy núi khi chưa đào nhánh sông nào.</summary>
+        static float MountainHeightRaw(RiverTrack track, Vector3 p, RiverSample s)
         {
             float baseH = track.UnmodifiedTerrainHeightAt(p, s.horizontalDistance, s.WaterHeight);
             float e = s.horizontalDistance - track.terrainMargin;
+            // Dãy núi của hầm nối liền vào dãy núi bao quanh, không bị đứt ở mép địa hình
+            float tunnelRidge = track.RidgeHeight(p, s) - 0.5f;
             if (e <= 0f)
-                return ApplyWaterfallLandform(track,p,baseH - 0.5f);
+                return ApplyWaterfallLandform(track,p,Mathf.Max(baseH - 0.5f, tunnelRidge));
 
             // Nhiễu dạng sống núi: lấy 1 - |2n - 1| nên chỗ nhiễu bằng 0,5 thành đỉnh nhọn, cộng ba tầng to nhỏ
             float seed = (track.seed % 613) * 1.13f;
@@ -731,7 +774,7 @@ namespace VuotThac.EditorTools.Track
             ridge /= total;
 
             float rise = Mathf.SmoothStep(0f, 1f, e / 70f);
-            return ApplyWaterfallLandform(track,p,baseH - 0.5f + rise * (track.mountainHeight * (0.35f + 0.65f * ridge)) + e * 0.12f);
+            return ApplyWaterfallLandform(track,p,Mathf.Max(tunnelRidge, baseH - 0.5f + rise * (track.mountainHeight * (0.35f + 0.65f * ridge)) + e * 0.12f));
         }
 
         static void BuildMountains(BuildContext ctx, Transform parent)

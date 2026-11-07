@@ -33,6 +33,96 @@ namespace VuotThac.Track
         [Min(0f)] public float flowMultiplier = 1f;
         [Tooltip("Màu biển báo ở ngã rẽ: 0 vàng (đường tắt), 1 xanh (đường vòng)")]
         public int signColor;
+        [Tooltip("Đoạn nhánh chui vào lòng núi thì thành hang. Trần hang cao bao nhiêu mét so với mặt nước")]
+        [Min(5f)] public float caveCeiling = 9f;
+        [Tooltip("Đắp thêm một dãy núi cao bấy nhiêu mét ngay trên đoạn giữa nhánh để nhánh chui hang. 0 là không đắp")]
+        [Min(0f)] public float mountainHeight;
+
+        /// <summary>
+        /// Độ cao dãy núi đắp trên nhánh tại một điểm, dựa vào điểm gần nhất trên nhánh <paramref name="bs"/>.
+        /// Núi cao nhất ngay trên dòng nước ở đoạn giữa, thoải dần ra hai bên và về hai đầu nhánh.
+        /// Trả về float.MinValue nếu nhánh không đắp núi hoặc điểm nằm ngoài chân núi.
+        /// </summary>
+        public float RidgeHeight(Vector3 mapPos, RiverSample bs)
+        {
+            if (mountainHeight <= 0f || !IsBuilt)
+                return float.MinValue;
+            float u = bs.distance / Mathf.Max(1f, Length);
+            float along = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.1f, 0.32f, u)) *
+                          Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.9f, 0.68f, u));
+            float lateral = bs.horizontalDistance / 42f;
+            float f = along * Mathf.Exp(-lateral * lateral);
+            if (f < 0.01f)
+                return float.MinValue;
+            // Đỉnh lởm chởm như các dãy núi khác
+            float n = Mathf.PerlinNoise(mapPos.x * 0.03f + 17f, mapPos.z * 0.03f + 5f);
+            float ridged = 1f - Mathf.Abs(2f * n - 1f);
+            float bumps = Mathf.PerlinNoise(mapPos.x * 0.09f + 3f, mapPos.z * 0.09f) - 0.5f;
+            float peak = mountainHeight * (0.75f + 0.4f * ridged * ridged + 0.15f * bumps);
+            return bs.WaterHeight + peak * f;
+        }
+
+        /// <summary>
+        /// Điểm nào của nhánh nằm sâu trong núi (đi ngầm trong hang). Do công cụ dựng map tính ra,
+        /// ở những điểm này địa hình không bị đào để núi vẫn nguyên phía trên hang.
+        /// </summary>
+        [NonSerialized] public bool[] underground;
+
+        [NonSerialized] float[] caveGap;
+
+        /// <summary>Gọi sau khi sửa <see cref="underground"/> để tính lại khoảng cách tới hang.</summary>
+        public void MarkUndergroundChanged() => caveGap = null;
+
+        /// <summary>
+        /// Khoảng cách dọc theo nhánh từ mét <paramref name="distance"/> tới đoạn đi ngầm gần nhất (0 nếu đang ở trong hang).
+        /// Trả về float.MaxValue nếu nhánh không có hang nào.
+        /// </summary>
+        public float DistanceToCave(float distance)
+        {
+            if (underground == null || !IsBuilt || underground.Length != distances.Length)
+                return float.MaxValue;
+            if (caveGap == null)
+            {
+                int n = distances.Length;
+                caveGap = new float[n];
+                float last = float.MaxValue;
+                for (int i = 0; i < n; i++)
+                {
+                    if (underground[i]) last = distances[i];
+                    caveGap[i] = last == float.MaxValue ? float.MaxValue : distances[i] - last;
+                }
+                last = float.MaxValue;
+                for (int i = n - 1; i >= 0; i--)
+                {
+                    if (underground[i]) last = distances[i];
+                    if (last != float.MaxValue)
+                        caveGap[i] = Mathf.Min(caveGap[i], last - distances[i]);
+                }
+            }
+            int lo = 0, hi = distances.Length - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (distances[mid] <= distance) lo = mid;
+                else hi = mid;
+            }
+            return Mathf.Min(caveGap[lo], caveGap[hi]);
+        }
+
+        /// <summary>Đoạn nhánh ở mét này có đang đi ngầm trong núi không.</summary>
+        public bool IsUndergroundAt(float distance)
+        {
+            if (underground == null || !IsBuilt)
+                return false;
+            int lo = 0, hi = distances.Length - 1;
+            while (hi - lo > 1)
+            {
+                int mid = (lo + hi) / 2;
+                if (distances[mid] <= distance) lo = mid;
+                else hi = mid;
+            }
+            return underground[lo] && underground[hi];
+        }
 
         /// <summary>Tâm nhánh lấy mẫu mỗi mét, trục y là độ cao mặt nước.</summary>
         [NonSerialized] public Vector3[] points;
@@ -45,7 +135,12 @@ namespace VuotThac.Track
         /// <summary>Đường tắt hay đường vòng: so chiều dài nhánh với đoạn sông chính mà nó thay thế.</summary>
         public float LengthDifference => Length - (toDistance - fromDistance);
 
-        public void Invalidate() => points = null;
+        public void Invalidate()
+        {
+            points = null;
+            underground = null;
+            caveGap = null;
+        }
 
         /// <summary>Điểm trên tâm nhánh gần <paramref name="worldPos"/> nhất, chỉ xét mặt phẳng ngang.</summary>
         public RiverSample GetNearest(Vector3 worldPos)
@@ -142,6 +237,12 @@ namespace VuotThac.Track
                     break;
             }
 
+            // Phình ra phía trong khúc cua xa hơn bán kính cua thì đường nhánh tự thắt nút.
+            // Cắt bỏ nút rồi làm mượt góc vừa cắt để thuyền chạy êm.
+            if (bulge > 0f)
+                pts = Smooth(RemoveLoops(pts), 15, 6);
+            count = pts.Length;
+
             points = pts;
             tangents = new Vector3[count];
             distances = new float[count];
@@ -155,6 +256,59 @@ namespace VuotThac.Track
                 step.y = 0f;
                 distances[i] = i == 0 ? 0f : distances[i - 1] + step.magnitude;
             }
+        }
+
+        /// <summary>Tìm hai đoạn thẳng cắt nhau xa nhất trên đường và bỏ hết phần vòng ở giữa.</summary>
+        static Vector3[] RemoveLoops(Vector3[] pts)
+        {
+            var list = new System.Collections.Generic.List<Vector3>(pts);
+            for (int i = 0; i < list.Count - 3; i++)
+            {
+                for (int j = list.Count - 2; j >= i + 2; j--)
+                {
+                    if (!Intersect(list[i], list[i + 1], list[j], list[j + 1], out float t))
+                        continue;
+                    Vector3 x = Vector3.Lerp(list[i], list[i + 1], t);
+                    list.RemoveRange(i + 1, j - i);
+                    list.Insert(i + 1, x);
+                    break;
+                }
+            }
+            return list.ToArray();
+        }
+
+        static bool Intersect(Vector3 a, Vector3 b, Vector3 c, Vector3 d, out float t)
+        {
+            t = 0f;
+            float rx = b.x - a.x, rz = b.z - a.z, sx = d.x - c.x, sz = d.z - c.z;
+            float den = rx * sz - rz * sx;
+            if (Mathf.Abs(den) < 1e-6f)
+                return false;
+            float qx = c.x - a.x, qz = c.z - a.z;
+            t = (qx * sz - qz * sx) / den;
+            float u = (qx * rz - qz * rx) / den;
+            return t >= 0f && t <= 1f && u >= 0f && u <= 1f;
+        }
+
+        /// <summary>Làm mượt bằng trung bình trượt, giữ nguyên hai đầu nhánh vì chúng nối vào sông chính.</summary>
+        static Vector3[] Smooth(Vector3[] pts, int radius, int passes)
+        {
+            int n = pts.Length;
+            var a = (Vector3[])pts.Clone();
+            var b = new Vector3[n];
+            for (int pass = 0; pass < passes; pass++)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    int r = Mathf.Min(radius, Mathf.Min(i, n - 1 - i));
+                    Vector3 sum = Vector3.zero;
+                    for (int k = -r; k <= r; k++)
+                        sum += a[i + k];
+                    b[i] = sum / (2 * r + 1);
+                }
+                (a, b) = (b, a);
+            }
+            return a;
         }
 
         Vector3[] Shape(RiverTrack main, Vector3 p0, Vector3 p1, Vector3 away, float water0, float water1, float extra, int count)

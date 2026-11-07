@@ -279,7 +279,7 @@ namespace VuotThac.Boats
 
             // Giao diện khi đang chơi
             hudRoot = Rect(root, "Hud", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
-            var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    C: đổi góc nhìn    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
+            var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    V: đổi góc nhìn    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
             Place(hint.rectTransform, new Vector2(0f, 1f), new Vector2(30f, -24f), new Vector2(1200f, 40f), new Vector2(0f, 1f));
             Shadow(hint);
             speedText = Label(hudRoot.transform, "Speed", "0 km/h", 56, FontStyle.Bold, TextAnchor.LowerRight);

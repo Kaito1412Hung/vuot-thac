@@ -40,6 +40,33 @@ namespace VuotThac.EditorTools.Boats
             var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterials=mats;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
         }
         static Mesh closedBodyMesh;
+        static Mesh firstPersonArmsMesh;
+
+        /// <summary>Cắt riêng đôi tay từ mesh thân để hiện ở góc nhìn thứ nhất. Bỏ dữ liệu khuôn mặt vì tay không cần.</summary>
+        static Mesh BuildFirstPersonArms(SkinnedMeshRenderer body,Animator animator)
+        {
+            var armsMesh=Object.Instantiate(body.sharedMesh);armsMesh.name="FirstPersonArms";
+            armsMesh.ClearBlendShapes();
+            var weights=armsMesh.boneWeights;
+            var leftArm=animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);var rightArm=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            var armBones=new System.Collections.Generic.HashSet<int>();
+            for(int bone=0;bone<body.bones.Length;bone++)if(body.bones[bone].IsChildOf(leftArm)||body.bones[bone].IsChildOf(rightArm))armBones.Add(bone);
+            bool IsArm(int vertex)
+            {
+                var w=weights[vertex];float total=0;
+                if(armBones.Contains(w.boneIndex0))total+=w.weight0;if(armBones.Contains(w.boneIndex1))total+=w.weight1;
+                if(armBones.Contains(w.boneIndex2))total+=w.weight2;if(armBones.Contains(w.boneIndex3))total+=w.weight3;
+                return total>0.55f;
+            }
+            for(int sub=0;sub<armsMesh.subMeshCount;sub++)
+            {
+                var triangles=armsMesh.GetTriangles(sub);var kept=new System.Collections.Generic.List<int>();
+                for(int k=0;k<triangles.Length;k+=3)if(IsArm(triangles[k])&&IsArm(triangles[k+1])&&IsArm(triangles[k+2]))kept.AddRange(new[]{triangles[k],triangles[k+1],triangles[k+2]});
+                armsMesh.SetTriangles(kept,sub);
+            }
+            AssetDatabase.AddObjectToAsset(armsMesh,MeshAsset);
+            return armsMesh;
+        }
         static void AddGripHands(GameObject human,Animator animator)
         {
             var body=human.GetComponentInChildren<SkinnedMeshRenderer>();
@@ -144,25 +171,10 @@ namespace VuotThac.EditorTools.Boats
                 foreach(var renderer in root.GetComponentsInChildren<Renderer>())if(renderer.name!="ClosedGripHand"&&(actor.paddle==null||!renderer.transform.IsChildOf(actor.paddle)))visible.Add(renderer);
                 actor.bodyRenderers=visible.ToArray();
                 var body=human.GetComponentInChildren<SkinnedMeshRenderer>();
-                var armsMesh=Object.Instantiate(body.sharedMesh);armsMesh.name="FirstPersonArms_"+spec.id+"_"+index;
-                var weights=armsMesh.boneWeights;
-                var leftArm=animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);var rightArm=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
-                var armBones=new System.Collections.Generic.HashSet<int>();
-                for(int bone=0;bone<body.bones.Length;bone++)if(body.bones[bone].IsChildOf(leftArm)||body.bones[bone].IsChildOf(rightArm))armBones.Add(bone);
-                bool IsArm(int vertex)
-                {
-                    var w=weights[vertex];float total=0;
-                    if(armBones.Contains(w.boneIndex0))total+=w.weight0;if(armBones.Contains(w.boneIndex1))total+=w.weight1;
-                    if(armBones.Contains(w.boneIndex2))total+=w.weight2;if(armBones.Contains(w.boneIndex3))total+=w.weight3;
-                    return total>0.55f;
-                }
-                for(int sub=0;sub<armsMesh.subMeshCount;sub++)
-                {
-                    var triangles=armsMesh.GetTriangles(sub);var kept=new System.Collections.Generic.List<int>();
-                    for(int k=0;k<triangles.Length;k+=3)if(IsArm(triangles[k])&&IsArm(triangles[k+1])&&IsArm(triangles[k+2]))kept.AddRange(new[]{triangles[k],triangles[k+1],triangles[k+2]});
-                    armsMesh.SetTriangles(kept,sub);
-                }
-                AssetDatabase.AddObjectToAsset(armsMesh,MeshAsset);
+                // Mọi người chèo dùng cùng một mesh thân nên đôi tay cũng giống hệt nhau: chỉ tạo một lần rồi dùng chung.
+                // Trước đây mỗi người chèo chép nguyên mesh (khoảng 38 MB) làm file Boats.asset phình lên hơn 500 MB.
+                if(firstPersonArmsMesh==null)firstPersonArmsMesh=BuildFirstPersonArms(body,animator);
+                var armsMesh=firstPersonArmsMesh;
                 var armsGo=new GameObject("FirstPersonArms");armsGo.transform.SetParent(body.transform,false);
                 var arms=armsGo.AddComponent<SkinnedMeshRenderer>();arms.sharedMesh=armsMesh;arms.bones=body.bones;arms.rootBone=body.rootBone;
                 arms.sharedMaterials=body.sharedMaterials;arms.localBounds=body.localBounds;arms.updateWhenOffscreen=true;

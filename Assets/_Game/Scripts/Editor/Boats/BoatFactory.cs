@@ -302,6 +302,7 @@ namespace VuotThac.EditorTools.Boats
             Directory.CreateDirectory(Path.GetDirectoryName(MeshAsset));
             cache.Clear();
             closedBodyMesh=null;
+            firstPersonArmsMesh=null;
 
             if (AssetDatabase.LoadMainAssetAtPath(MeshAsset) != null)
                 AssetDatabase.DeleteAsset(MeshAsset);

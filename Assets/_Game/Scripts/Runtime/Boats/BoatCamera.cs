@@ -49,7 +49,8 @@ namespace VuotThac.Boats
                 return;
             }
 
-            if(Keyboard.current!=null&&Keyboard.current.cKey.wasPressedThisFrame)ToggleView();
+            // Phím V đổi giữa góc nhìn sau lưng và góc nhìn thứ nhất
+            if(Keyboard.current!=null&&Keyboard.current.vKey.wasPressedThisFrame)ToggleView();
             if(Gamepad.current!=null&&Gamepad.current.rightStickButton.wasPressedThisFrame)ToggleView();
             if(firstPerson&&rower!=null&&rower.eye!=null)
             {

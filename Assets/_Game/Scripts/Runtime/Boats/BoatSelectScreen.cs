@@ -99,6 +99,7 @@ namespace VuotThac.Boats
             BuildUI();
             index = Mathf.Clamp(PlayerPrefs.GetInt(PrefKey, 0), 0, catalog.boats.Length - 1);
             EnterSelect();
+            BootBackend();
         }
 
         void Update()
@@ -106,6 +107,11 @@ namespace VuotThac.Boats
             if(onlinePanel!=null&&onlinePanel.activeSelf)
             {
                 if(backAction.WasPressedThisFrame())CloseOnlinePanel();
+                AnimatePreview();return;
+            }
+            if(leaderboardPanel!=null&&leaderboardPanel.activeSelf)
+            {
+                if(backAction.WasPressedThisFrame())CloseLeaderboard();
                 AnimatePreview();return;
             }
             if (state == State.Selecting)
@@ -125,6 +131,7 @@ namespace VuotThac.Boats
                 if (player != null)
                 {
                     if(!onlinePlaying)race.Tick(Time.deltaTime);raceTime=race.Elapsed;
+                    TickRecording();
                     TickPhaseFour(Time.deltaTime);
                     raceNotice.text=race.CountdownRemaining>0?Mathf.CeilToInt(race.CountdownRemaining).ToString():"";
                     float progress = Mathf.Clamp01((race.Player.Distance - track.StartDistance) / track.RaceLength);
@@ -156,6 +163,7 @@ namespace VuotThac.Boats
                 if(onlineRoom!=null)_ = onlineRoom.LeaveAsync();
             }
             state = State.Selecting;
+            ClearGhostBoat();recorder=null;
             if(race!=null)race.Clear();
             if (finishRoot != null) finishRoot.SetActive(false);
             if (playerBoat != null)
@@ -237,7 +245,11 @@ namespace VuotThac.Boats
             player.Track = track;
             player.Input = playerBoat.AddComponent<PlayerBoatInput>();
             if(race==null)race=gameObject.AddComponent<BoatRace>();
-            race.Begin(player,catalog,track,difficulty,opponentRoster:cup.Active?cupBoatRoster:null);
+            ClearGhostBoat();
+            // Thử thách ngày: seed và độ khó do server chọn, nên mọi người chơi cùng một bố cục và đội máy
+            bool dailyRace=DailyRace&&!cup.Active;
+            race.Begin(player,catalog,track,dailyRace?(DifficultyLevel)Mathf.Clamp(dailyInfo.difficulty,0,4):difficulty,dailyRace?dailyInfo.seed:(int?)null,cup.Active?cupBoatRoster:null);
+            SpawnGhostBoat();BeginRecording();
             raceNotice.text="3";
             if (Application.isMobilePlatform)
                 playerBoat.AddComponent<MobileBoatControls>().Initialize((PlayerBoatInput)player.Input, boatCamera, this);
@@ -266,6 +278,7 @@ namespace VuotThac.Boats
             player.GetComponent<Rigidbody>().isKinematic = true;
             foreach(var collider in player.GetComponentsInChildren<Collider>())collider.enabled=false;
             hudRoot.SetActive(false);
+            SubmitFinishedRun();
             SetResultText($"VỀ ĐÍCH — HẠNG {race.PlayerRank}/{race.Racers.Count}\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}\n\n"+race.Results());
             finishRoot.SetActive(true);
             UpdateFinishResults();
@@ -404,6 +417,7 @@ namespace VuotThac.Boats
             finishRoot.SetActive(false);
             BuildPhaseFourUI(panel);
             BuildOnlineUI(root);
+            BuildBackendUI(root);
         }
 
         RectTransform Rect(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)

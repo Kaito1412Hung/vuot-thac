@@ -16,6 +16,8 @@ Game đua thuyền 3D trên Android, làm cho đồ án cuối kỳ. Người ch
 
 > **Bổ sung đội máy:** bốc 5 loại từ cả 10 loại thuyền; model đã train thêm 80.028 bước với dữ liệu đủ 10 loại. Bốn nhóm kiểm tra bao phủ cả 10 loại đều 6/6 về đích; giao diện chơi lại đã xác nhận đổi đội. Số liệu kiểm tra 5 mức của giai đoạn 3 thuộc model V5 trước đó; model bổ sung hiện được kiểm tra ở mức Thường.
 
+> **Giai đoạn 6 — đã chạy trên máy:** Backend trong Docker, game trong Unity Editor gửi kết quả, xem bảng xếp hạng, đua với bóng ma, chơi thử thách ngày và đồng bộ tiến độ. Bản phát hành chưa có địa chỉ server nên các tính năng này tự ẩn. Xem [PHASE6.md](PHASE6.md).
+
 ## Đáp ứng yêu cầu đồ án
 
 | Yêu cầu | Cách đáp ứng | Trạng thái |
@@ -23,7 +25,7 @@ Game đua thuyền 3D trên Android, làm cho đồ án cuối kỳ. Người ch
 | **Unity** | Toàn bộ game 3D dùng URP: sông dựng theo spline, vật lý thuyền nổi, dòng chảy, thác | Đã có bản lái giai đoạn 1 |
 | **AI** | Mạng nơ-ron học điều khiển qua ML-Agents/PPO, xuất ONNX chạy trong game; không dùng LLM. FSM là bản đối chứng để đo cải thiện, không phải model học máy | Model đã train và chạy trong Unity; xem PHASE3.md |
 | **Cloud** | UGS Lobby/Relay phục vụ phòng bạn bè qua Internet. Backend riêng lưu ghost, bảng xếp hạng, thử thách hằng ngày và tiến độ vẫn là kế hoạch sau | Phòng UGS đã triển khai; backend riêng chưa làm |
-| **Docker** | Docker Compose dự kiến đóng gói API, database và reverse proxy; đã có Dockerfile trainer bổ sung | Backend chưa làm; Dockerfile trainer chưa chạy kiểm tra |
+| **Docker** | Docker Compose đóng gói API, database và reverse proxy; đã có Dockerfile trainer bổ sung | Backend chạy trên máy và game đã nối vào; xem [PHASE6.md](PHASE6.md). Dockerfile trainer chưa chạy kiểm tra |
 | **Mobile** | Android màn hình ngang, nghiêng máy hoặc nút bấm để lái, giữ nút chèo | Đã triển khai điều khiển; xem kết quả build và thử thiết bị trong PHASE1.md |
 
 ## Cách chơi
@@ -106,14 +108,15 @@ Docker không đóng gói game. Game vẫn chơi được khi mất mạng. Khi 
 
 Huấn luyện hiện chạy trên máy cá nhân bằng Python portable, với các phiên bản đã chốt trong `Training/requirements.lock.txt`. Dockerfile là cách đóng gói bổ sung, chưa được kiểm tra vì Docker daemon chưa chạy. Không cần trainer hoặc Python để suy luận model trong game.
 
-**API dự kiến:**
+**API** (đã làm, chi tiết trong [Backend/README.md](Backend/README.md)):
 
 | Endpoint | Việc |
 |---|---|
+| `POST /v1/players` | Tạo tài khoản ẩn danh, trả về token |
 | `POST /v1/runs` | Gửi thời gian về đích kèm đường đi đã ghi lại để làm ghost |
-| `GET /v1/leaderboard?track=` | Bảng xếp hạng Suối Rừng hoặc theo ngày; tham số track cố định cho map duy nhất |
+| `GET /v1/leaderboard?mode=` | Bảng xếp hạng Suối Rừng theo chế độ, thuyền hoặc ngày |
 | `GET /v1/ghosts/{id}` | Tải ghost để đua cùng |
-| `GET /v1/daily-challenge` | Trả về điều kiện thử thách trên Suối Rừng: mức nước và seed vật phẩm của ngày |
+| `GET /v1/daily-challenge` | Trả về seed bố cục và độ khó của ngày trên Suối Rừng |
 | `GET /v1/save`, `PUT /v1/save` | Đọc và ghi tiến độ: thành tích trên Suối Rừng, cúp đã đạt, thuyền đã mở khóa |
 | `GET /health` | Kiểm tra server còn sống |
 
@@ -132,7 +135,7 @@ Ghost là vị trí và hướng của thuyền được ghi 10 lần mỗi giâ
 | Test | Unity Test Framework 1.7.0 |
 | Android | API tối thiểu 26 |
 | Asset 3D | Miễn phí, dự kiến thuyền, đá và cây low-poly từ Kenney, Quaternius và Poly Pizza |
-| Backend | Dự kiến Python 3.12, FastAPI, PostgreSQL |
+| Backend | Python 3.12, FastAPI, PostgreSQL 17, Caddy |
 | Hạ tầng | Docker Compose, nhà cung cấp cloud chưa chốt |
 
 ## Hiệu năng trên điện thoại
@@ -179,7 +182,7 @@ Assets/           Tài nguyên và code game. Code riêng của game đặt tron
 Packages/         Danh sách package của Unity
 ProjectSettings/  Cài đặt project Unity
 Training/         Trainer portable, cấu hình PPO, dữ liệu mẫu, báo cáo và công cụ kiểm tra/đưa ONNX vào game
-Backend/          API và Docker Compose (sẽ thêm khi làm backend)
+Backend/          API, database, Caddy và Docker Compose
 ```
 
 ## Quy trình làm việc
@@ -201,7 +204,7 @@ Backend/          API và Docker Compose (sẽ thêm khi làm backend)
 - [x] **Giai đoạn 3 - ML-Agents (Unity Editor):** đã train BC/PPO, xuất ONNX, tích hợp 5 đối thủ và nút chọn PPO/FSM; đủ 12 checkpoint, 6/6 thuyền về đích ở 5 mức và bài đổi làn. Có so sánh với FSM, kiểm tra miền hành động và thông tin nguồn model. Chưa kiểm tra Android; cần cân bằng thêm độ khó. Docker là cách chạy bổ sung, chưa kiểm tra. Xem [PHASE3.md](PHASE3.md).
 - [x] **Giai đoạn 4 - Gameplay (Unity Editor):** ba vật phẩm, Cúp 3 lượt trên Suối Rừng, điểm tích lũy, HUD, thắng/thua/hết giờ, chơi lại, thành tích cục bộ. Luật/UI 31/31; đua có vật phẩm 6/6 về đích. Chưa kiểm tra Android hoặc triển khai vật phẩm/Cúp online. Xem [PHASE4.md](PHASE4.md).
 - [ ] **Giai đoạn 5 - Mobile:** đã tối ưu cấp phát lặp, mesh/icon ở xa và cập nhật safe area; sửa ưu tiên cảm ứng, nhả điều khiển và cân bằng khi xoay màn hình. Đã build APK Android 0.5.0 thành công, 0 lỗi; chữ ký và căn chỉnh 16 KB đạt. Chờ thử điện thoại để đo hiệu năng/cảm giác lái. Xem [PHASE5.md](PHASE5.md).
-- [ ] **Giai đoạn 6 - Backend:** API dữ liệu giả, Docker Compose chạy trên máy
+- [x] **Giai đoạn 6 - Backend (trên máy):** API, PostgreSQL, Caddy và Docker Compose; game gửi kết quả, có bảng xếp hạng, đua với bóng ma, thử thách ngày, lưu tiến độ, tự gửi lại khi mất mạng. 46 test đạt và đã đua thật trong Unity Editor. Chưa kiểm tra Android. Xem [PHASE6.md](PHASE6.md).
 - [ ] **Giai đoạn 7 - Cloud:** deploy, HTTPS, ghost, bảng xếp hạng, thử thách hằng ngày, lưu tiến độ
 - [ ] **Giai đoạn 8 - Báo cáo:** hoàn thiện, viết báo cáo, quay video demo dự phòng và video quá trình huấn luyện
 

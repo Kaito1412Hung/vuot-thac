@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using VuotThac.Track;
 
@@ -9,6 +10,8 @@ namespace VuotThac.Boats
         public string RacerName { get; private set; }
         public float Distance { get; private set; }
         public int Checkpoints { get; private set; }
+        /// <summary>Thời điểm qua từng cổng, mili giây. Mốc cuối chính là thời gian về đích.</summary>
+        public readonly List<int> CheckpointTimesMs = new List<int>();
         public bool Finished { get; private set; }
         public float FinishTime { get; private set; }
         public int FinishOrder { get; set; }
@@ -55,7 +58,7 @@ namespace VuotThac.Boats
             // Ordered gates prevent a jump to the finish from completing a race.
             if(d>=nextGate&&previousDistance<nextGate&&d-nextGate<30)
             {
-                Checkpoints++;safeDistance=nextGate;
+                Checkpoints++;CheckpointTimesMs.Add(Mathf.RoundToInt(elapsed*1000));safeDistance=nextGate;
                 safePosition=w.center+Vector3.up*Boat.FloatHeight;
                 safeRotation=Quaternion.LookRotation(w.tangent,Vector3.up);
                 nextGate=Mathf.Min(track.FinishDistance,nextGate+GateSpacing);

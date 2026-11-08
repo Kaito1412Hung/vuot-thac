@@ -16,8 +16,7 @@ namespace VuotThac.Boats
         Button itemButton,nextRoundButton,retryButton;
         void BuildPhaseFourUI(Transform panel)
         {
-            var mode=Button(panel,"RaceMode","CHẾ ĐỘ: ĐUA 1 LƯỢT >",new Color(.26f,.25f,.38f),()=>
-            {cupSelected=!cupSelected;modeText.text=cupSelected?"CHẾ ĐỘ: CÚP 3 LƯỢT >":"CHẾ ĐỘ: ĐUA 1 LƯỢT >";});
+            var mode=Button(panel,"RaceMode","CHẾ ĐỘ: ĐUA 1 LƯỢT >",new Color(.26f,.25f,.38f),CycleRaceMode);
             Place(mode,new Vector2(.5f,0),new Vector2(0,282),new Vector2(580,56));modeText=mode.GetComponentInChildren<Text>();modeText.fontSize=27;
             var use=Button(hudRoot.transform,"UseItem","",new Color(.1f,.36f,.48f,.95f),UseHeldItem);
             Place(use,new Vector2(.5f,0),new Vector2(0,95),new Vector2(470,104));itemButton=use.GetComponent<Button>();itemText=use.GetComponentInChildren<Text>();itemText.fontSize=25;itemText.alignment=TextAnchor.MiddleLeft;
@@ -109,7 +108,7 @@ namespace VuotThac.Boats
                     text=award+" — HẠNG "+cup.PlayerRank+"/6\n\n"+cup.Standings();
                 }
             }
-            SetResultText(text);
+            SetResultText(text+BackendResultLine());
         }
         void ContinueCup()
         {

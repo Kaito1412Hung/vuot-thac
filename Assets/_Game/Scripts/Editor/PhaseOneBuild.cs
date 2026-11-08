@@ -6,18 +6,25 @@ using UnityEngine;
 
 namespace VuotThac.EditorTools
 {
+    [InitializeOnLoad]
     public static class PhaseOneBuild
     {
+        const string PendingKey="VuotThac.PhaseOneBuild.Pending";
+        static PhaseOneBuild(){if(SessionState.GetBool(PendingKey,false))EditorApplication.delayCall+=Build;}
         public static string Output => Path.GetFullPath("Builds/Android/Phase1");
         [MenuItem("Vuot Thac/Phase 1/Build Android APK")]
         public static void Queue()
         {
             Directory.CreateDirectory(Output);
             File.WriteAllText(Path.Combine(Output, "build-status.txt"), "Queued " + DateTime.Now);
+            SessionState.SetBool(PendingKey,true);
             EditorApplication.delayCall += Build;
         }
         static void Build()
         {
+            if(!SessionState.GetBool(PendingKey,false))return;
+            if(EditorApplication.isCompiling||EditorApplication.isPlayingOrWillChangePlaymode){EditorApplication.delayCall+=Build;return;}
+            SessionState.SetBool(PendingKey,false);
             try
             {
                 // Keep Gradle downloads, Android user settings and temp build files inside this project on D.

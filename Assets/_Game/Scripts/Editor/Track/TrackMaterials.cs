@@ -90,6 +90,7 @@ namespace VuotThac.EditorTools.Track
                 return existing;
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if(name=="Water")shader=Shader.Find("VuotThac/DryInteriorWater")??shader;
             var mat = new Material(shader) { name = name, enableInstancing = true };
             mat.SetColor("_BaseColor", color);
             mat.SetFloat("_Smoothness", smoothness);

@@ -21,6 +21,8 @@ namespace VuotThac.Boats
         Vector3 smoothedForward = Vector3.forward;
         public bool firstPerson;
         BoatRower rower;
+        BoatController followedBoat;
+        int waterHint=-1;
         float yaw,pitch;
         Camera viewCamera;
         float followFov;
@@ -36,6 +38,7 @@ namespace VuotThac.Boats
         public void Follow(Transform boat, float boatLength)
         {
             target = boat;
+            followedBoat=boat.GetComponent<BoatController>();waterHint=-1;
             rower=boat.GetComponentInChildren<BoatRower>();yaw=0;pitch=firstPerson?FirstPersonPitch:0;
             if(viewCamera==null){viewCamera=GetComponent<Camera>();if(viewCamera!=null){followFov=viewCamera.fieldOfView;followNear=viewCamera.nearClipPlane;}}
             distance = Mathf.Max(7f, boatLength * 1.5f + 3f);
@@ -79,11 +82,19 @@ namespace VuotThac.Boats
 
             float dt = Time.deltaTime;
             smoothedForward = Vector3.Slerp(smoothedForward, Flat(target.forward), 1f - Mathf.Exp(-turnSharpness * dt));
-            transform.position = Vector3.Lerp(transform.position, Desired(), 1f - Mathf.Exp(-followSharpness * dt));
+            transform.position = AboveWater(Vector3.Lerp(transform.position, Desired(), 1f - Mathf.Exp(-followSharpness * dt)));
             transform.LookAt(LookPoint());
         }
 
-        Vector3 Desired() => target.position - smoothedForward * distance + Vector3.up * height;
+        Vector3 Desired() => AboveWater(target.position - smoothedForward * distance + Vector3.up * height);
+        Vector3 AboveWater(Vector3 position)
+        {
+            if(followedBoat==null||followedBoat.Track==null)return position;
+            var surface=followedBoat.Track.SampleWater(position,ref waterHint);
+            // The camera trails upstream of the hull: that water can still be several metres higher at a fall.
+            if(surface.inWater||surface.edgeDistance<2)position.y=Mathf.Max(position.y,surface.height+.9f);
+            return position;
+        }
         Vector3 LookPoint() => target.position + smoothedForward * lookAhead + Vector3.up;
 
         static Vector3 Flat(Vector3 v)

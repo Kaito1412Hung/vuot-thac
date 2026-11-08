@@ -15,10 +15,12 @@ namespace VuotThac.Boats
         public bool TiltEnabled { get; private set; }
         public bool TiltAvailable => Accelerometer.current != null;
         public float TouchSteer { get; set; }
+        public bool TouchSteeringActive { get; set; }
+        ScreenOrientation lastOrientation;
         public float TouchThrottle { get; set; }
         float neutral, tilt;
         bool calibratePending;
-        public float Steer => Mathf.Clamp(steer.ReadValue<float>() + (Mathf.Abs(TouchSteer) > 0.01f ? TouchSteer : (TiltEnabled ? tilt : 0)), -1, 1);
+        public float Steer => Mathf.Clamp(steer.ReadValue<float>() + (TouchSteeringActive || Mathf.Abs(TouchSteer) > 0.01f ? TouchSteer : (TiltEnabled ? tilt : 0)), -1, 1);
         public float Throttle => Mathf.Clamp(throttle.ReadValue<float>() + TouchThrottle, -1, 1);
         public static float TiltAxis(float acceleration, float center)
         {
@@ -34,7 +36,7 @@ namespace VuotThac.Boats
             else tilt = 0;
             PlayerPrefs.SetInt("VuotThac.Tilt", TiltEnabled ? 1 : 0);
         }
-        public void ReleaseTouch() { TouchSteer = TouchThrottle = 0; }
+        public void ReleaseTouch() { TouchSteer = TouchThrottle = tilt = 0; TouchSteeringActive = false; }
 
         public bool ConsumeReset()
         {
@@ -85,6 +87,7 @@ namespace VuotThac.Boats
 
         void Update()
         {
+            if (lastOrientation != Screen.orientation) { lastOrientation = Screen.orientation; Calibrate(); }
             if (TiltEnabled && Accelerometer.current != null)
             {
                 var gravity = Accelerometer.current.acceleration.ReadValue();

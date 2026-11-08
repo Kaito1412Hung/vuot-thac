@@ -23,6 +23,10 @@ namespace VuotThac.Boats
         Mesh foamMesh;
         Vector2[] outline, normals;
         Vector3[] foamVertices;
+        Color[] foamColors;
+        Vector3 surfaceOrigin,surfaceForward=Vector3.forward;
+        float surfaceBow,surfaceStern;
+        bool surfaceReady;
         float foamWidth = -1f, sternZ, bowZ, sternHalf, bowHalf, wakeDistance, sprayTimer;
         ParticleSystem wake, droplets, ripples;
         Vector3 lastPosition;
@@ -148,17 +152,17 @@ namespace VuotThac.Boats
             foamMesh = new Mesh { name = "ContactFoam" };
             int n = outline.Length;
             foamVertices = new Vector3[n * 2];
-            var uv = new Vector2[n * 2]; var colors = new Color[n * 2]; var tris = new int[n * 6];
+            var uv = new Vector2[n * 2]; foamColors = new Color[n * 2]; var tris = new int[n * 6];
             for (int i = 0; i < n; i++)
             {
                 uv[i * 2] = new Vector2(i / (float)n, 0); uv[i * 2 + 1] = new Vector2(i / (float)n, 1);
-                colors[i * 2] = colors[i * 2 + 1] = FoamColor;
+                foamColors[i * 2] = foamColors[i * 2 + 1] = FoamColor;
                 int j = (i + 1) % n;
                 tris[i * 6] = i * 2; tris[i * 6 + 1] = j * 2; tris[i * 6 + 2] = i * 2 + 1;
                 tris[i * 6 + 3] = j * 2; tris[i * 6 + 4] = j * 2 + 1; tris[i * 6 + 5] = i * 2 + 1;
             }
             SetFoamWidth(0.22f);
-            foamMesh.vertices = foamVertices; foamMesh.uv = uv; foamMesh.colors = colors; foamMesh.triangles = tris;
+            foamMesh.vertices = foamVertices; foamMesh.uv = uv; foamMesh.colors = foamColors; foamMesh.triangles = tris;
             foamMesh.bounds = new Bounds(Vector3.zero, Vector3.one * 20);
             go.AddComponent<MeshFilter>().sharedMesh = foamMesh;
             var r = go.AddComponent<MeshRenderer>();
@@ -225,7 +229,7 @@ namespace VuotThac.Boats
         /// <summary>Nước bắn khi mái chèo (hoặc sào) cắt mặt nước. <paramref name="strength"/> từ 0 đến 1.</summary>
         public void Splash(Vector3 point, Vector3 bladeVelocity, float strength)
         {
-            point.y = WaterHeight + 0.02f;
+            point.y = SurfaceHeight(point) + 0.02f;
             int drops = Mathf.RoundToInt(Mathf.Lerp(3, 14, strength));
             for (int i = 0; i < drops; i++)
             {
@@ -240,7 +244,7 @@ namespace VuotThac.Boats
         /// <summary>Gợn nhẹ khi mái chèo đang kéo trong nước.</summary>
         public void Swirl(Vector3 point, float strength)
         {
-            point.y = WaterHeight + 0.02f;
+            point.y = SurfaceHeight(point) + 0.02f;
             Emit(wake, point + Random.insideUnitSphere * 0.04f, Vector3.zero, Random.Range(0.12f, 0.25f) * (0.5f + strength), Random.Range(0.7f, 1.2f), 0.35f * strength + 0.1f);
         }
 
@@ -263,16 +267,35 @@ namespace VuotThac.Boats
             var fwd = transform.forward; fwd.y = 0;
             if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward; fwd.Normalize();
             var right = Vector3.Cross(Vector3.up, fwd);
+            surfaceOrigin=transform.position;surfaceForward=fwd;surfaceBow=surfaceStern=WaterHeight;surfaceReady=true;
+            if(!kinematic&&boat!=null&&boat.Track!=null)
+            {
+                int hint=-1;surfaceBow=boat.Track.SampleWater(surfaceOrigin+fwd*bowZ,ref hint).height;
+                hint=-1;surfaceStern=boat.Track.SampleWater(surfaceOrigin+fwd*sternZ,ref hint).height;
+            }
 
             if (foam != null)
             {
                 foam.gameObject.SetActive(inWater);
                 foam.SetPositionAndRotation(new Vector3(transform.position.x, WaterHeight + 0.012f, transform.position.z), Quaternion.LookRotation(fwd, Vector3.up));
                 SetFoamWidth(Mathf.Lerp(0.16f, 0.5f, Mathf.Clamp01(speed / 9f)));
+                // Foam follows the sloping surface and disappears where that part of the hull is airborne.
+                for(int i=0;i<outline.Length;i++)
+                {
+                    for(int edge=0;edge<2;edge++)
+                    {
+                        int index=i*2+edge;var p=foam.TransformPoint(foamVertices[index]);p.y=SurfaceHeight(p)+.012f;
+                        foamVertices[index]=foam.InverseTransformPoint(p);
+                    }
+                    var contact=boat!=null&&boat.model!=null?boat.model.TransformPoint(new Vector3(outline[i].x,-boat.FloatHeight,outline[i].y)):transform.position;
+                    var color=FoamColor;color.a*=kinematic?1:1-Mathf.SmoothStep(.06f,.22f,Mathf.Abs(contact.y-SurfaceHeight(contact)));
+                    foamColors[i*2]=foamColors[i*2+1]=color;
+                }
+                foamMesh.vertices=foamVertices;foamMesh.colors=foamColors;
             }
             if (!inWater || kinematic) { lastPosition = transform.position; return; }
 
-            Vector3 Local(float x, float z) { var p = transform.position + right * x + fwd * z; p.y = WaterHeight + 0.015f; return p; }
+            Vector3 Local(float x, float z) { var p = transform.position + right * x + fwd * z; p.y = SurfaceHeight(p) + 0.015f; return p; }
 
             // Vệt nước sau đuôi: thả bọt theo quãng đường đi được, toả ra hai bên
             wakeDistance += Vector3.Distance(transform.position, lastPosition);
@@ -282,8 +305,9 @@ namespace VuotThac.Boats
             {
                 wakeDistance -= spacing;
                 float k = Mathf.Clamp01(speed / 9f);
-                foreach (float side in new[] { -1f, 1f })
+                for (int sideIndex=0;sideIndex<2;sideIndex++)
                 {
+                    float side=sideIndex==0?-1f:1f;
                     var p = Local(side * sternHalf * 0.9f, sternZ + 0.05f);
                     var spread = right * side * Mathf.Lerp(0.3f, 1.3f, k) + velocity * 0.15f;
                     Emit(wake, p, spread, Mathf.Lerp(0.35f, 0.85f, k), Mathf.Lerp(1.4f, 2.8f, k), Mathf.Lerp(0.3f, 0.6f, k));
@@ -308,6 +332,13 @@ namespace VuotThac.Boats
                     Emit(droplets, p, v, Random.Range(0.04f, 0.1f), Random.Range(0.4f, 0.7f), 0.8f);
                 }
             }
+        }
+        float SurfaceHeight(Vector3 point)
+        {
+            if(!surfaceReady)return WaterHeight;
+            float z=Vector3.Dot(point-surfaceOrigin,surfaceForward);
+            return z>=0?Mathf.LerpUnclamped(WaterHeight,surfaceBow,z/Mathf.Max(.01f,bowZ)):
+                Mathf.LerpUnclamped(WaterHeight,surfaceStern,z/Mathf.Min(-.01f,sternZ));
         }
     }
 }

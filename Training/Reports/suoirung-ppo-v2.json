@@ -1,0 +1,769 @@
+{
+  "run_id": "suoirung-ppo-v2",
+  "seed": 42,
+  "unity_ml_agents": "4.2.0",
+  "config_sha256": "2cd2e43da00bec962ee0cf80564f86d156b9566ca4932d0ef1c7027998057194",
+  "expert": "BoatAIInput FSM; BC warm start followed by PPO",
+  "versions": {
+    "mlagents": "1.1.0",
+    "torch": "2.2.2+cpu",
+    "numpy": "1.23.5",
+    "onnx": "1.15.0"
+  },
+  "demonstrations": [
+    {
+      "file": "BoatExpert0.demo",
+      "sha256": "66fa400611341c4e67d56af30cf6df528f18bafd6e9842cec253c7bef5f75219",
+      "steps": 2557,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert0_0.demo",
+      "sha256": "6d54fefccd214643dae6b6f7612ea9ecb09f062c7afc97e6966c408c19f32b33",
+      "steps": 6045,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert1.demo",
+      "sha256": "1d05f9b16fc435c1a9f43c7129895fe239449cf1ec0ea826e011f0fe87a1852e",
+      "steps": 2562,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert1_0.demo",
+      "sha256": "d209a0eebce9a02dff66d56b6e6fd8a1fe622ed878444b9695d9e5e2501eff47",
+      "steps": 6046,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert2.demo",
+      "sha256": "d057cdf8c30114a4b300410c27e8d15f0dc3fa561e6cf2483c7e89aab1b2eef1",
+      "steps": 2557,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert2_0.demo",
+      "sha256": "fa30d7765dd6f975bdb4f4dcdee0d0549db3c82ffecdd8013b0fc9b02fe22c37",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert3.demo",
+      "sha256": "03c832e3ebe96c7ef146dad3aa681fbf7a464299db4d726efd4d6461a86ee4f7",
+      "steps": 2560,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert3_0.demo",
+      "sha256": "f87f2d5186c5dc6fb58a6a0765652bccd3cfd9ef84f5dd6a6e13cf3f86097530",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert4.demo",
+      "sha256": "23976264fbb75461f692b92769459b9de5fac720041c1a2b05e36d09257c9d08",
+      "steps": 2558,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert4_0.demo",
+      "sha256": "b4f765b0395333b4eb911edca00525177800fc58778a47344ff0fc3a0256bc31",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert5.demo",
+      "sha256": "2a6ddb2a00c90f65aee2e0bbb614fe572c66ccacfe65d91cf69c3f89b5084448",
+      "steps": 2559,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert5_0.demo",
+      "sha256": "38494b8c2498fb9d1b4284b8a34363690cc02c76a288aeafa7d99720875e619b",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert6.demo",
+      "sha256": "3fabf6e9ab684ad03e9e17c3cd1ebbec899d7fac2668b9870056c75e089bc3b0",
+      "steps": 2561,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert6_0.demo",
+      "sha256": "93454d37dda28e439cd157d13b77c901f1638a642fa3360f6686633dc9cf0481",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert7.demo",
+      "sha256": "2af3bba9173c55547dc7e20e23c64070112e8066cbe3ad226437ef41c6a3d85b",
+      "steps": 2556,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    },
+    {
+      "file": "BoatExpert7_0.demo",
+      "sha256": "c9b815fc225a3751c8c1ca74b9b98a6adccfd18226bebdc5e492711ceb9bfba7",
+      "steps": 6044,
+      "observations": [
+        [
+          42
+        ]
+      ],
+      "continuous_actions": 2
+    }
+  ],
+  "metrics": {
+    "Policy/Entropy": [
+      {
+        "step": 10000,
+        "value": 0.6158304810523987
+      },
+      {
+        "step": 20000,
+        "value": 0.1878758668899536
+      },
+      {
+        "step": 30000,
+        "value": -0.16610334813594818
+      },
+      {
+        "step": 40000,
+        "value": -0.480605810880661
+      },
+      {
+        "step": 50000,
+        "value": -0.7713887691497803
+      },
+      {
+        "step": 60000,
+        "value": -1.077316164970398
+      },
+      {
+        "step": 70000,
+        "value": -1.3570373058319092
+      },
+      {
+        "step": 80000,
+        "value": -1.643202781677246
+      },
+      {
+        "step": 90000,
+        "value": -1.9204516410827637
+      }
+    ],
+    "Environment/Lesson Number/episode_length": [
+      {
+        "step": 10000,
+        "value": 0.0
+      },
+      {
+        "step": 20000,
+        "value": 1.0
+      },
+      {
+        "step": 30000,
+        "value": 1.0
+      },
+      {
+        "step": 40000,
+        "value": 1.0
+      },
+      {
+        "step": 50000,
+        "value": 1.0
+      },
+      {
+        "step": 60000,
+        "value": 1.0
+      },
+      {
+        "step": 70000,
+        "value": 1.0
+      },
+      {
+        "step": 80000,
+        "value": 1.0
+      },
+      {
+        "step": 90000,
+        "value": 1.0
+      }
+    ],
+    "Environment/Episode Length": [
+      {
+        "step": 10000,
+        "value": 163.03334045410156
+      },
+      {
+        "step": 20000,
+        "value": 174.89285278320312
+      },
+      {
+        "step": 30000,
+        "value": 261.5142822265625
+      },
+      {
+        "step": 40000,
+        "value": 283.75
+      },
+      {
+        "step": 50000,
+        "value": 287.4117736816406
+      },
+      {
+        "step": 60000,
+        "value": 303.3939514160156
+      },
+      {
+        "step": 70000,
+        "value": 331.89654541015625
+      },
+      {
+        "step": 80000,
+        "value": 306.77777099609375
+      },
+      {
+        "step": 90000,
+        "value": 359.40740966796875
+      }
+    ],
+    "Boat/Success": [
+      {
+        "step": 10000,
+        "value": 0.5833333134651184
+      },
+      {
+        "step": 20000,
+        "value": 0.6785714030265808
+      },
+      {
+        "step": 30000,
+        "value": 0.48571428656578064
+      },
+      {
+        "step": 40000,
+        "value": 0.5277777910232544
+      },
+      {
+        "step": 50000,
+        "value": 0.4117647111415863
+      },
+      {
+        "step": 60000,
+        "value": 0.39393940567970276
+      },
+      {
+        "step": 70000,
+        "value": 0.517241358757019
+      },
+      {
+        "step": 80000,
+        "value": 0.5
+      },
+      {
+        "step": 90000,
+        "value": 0.6666666865348816
+      }
+    ],
+    "Boat/Progress": [
+      {
+        "step": 10000,
+        "value": 0.8875787258148193
+      },
+      {
+        "step": 20000,
+        "value": 0.8838728070259094
+      },
+      {
+        "step": 30000,
+        "value": 0.6843252778053284
+      },
+      {
+        "step": 40000,
+        "value": 0.733194887638092
+      },
+      {
+        "step": 50000,
+        "value": 0.6889954805374146
+      },
+      {
+        "step": 60000,
+        "value": 0.6624851226806641
+      },
+      {
+        "step": 70000,
+        "value": 0.7718337774276733
+      },
+      {
+        "step": 80000,
+        "value": 0.6916087865829468
+      },
+      {
+        "step": 90000,
+        "value": 0.8233224153518677
+      }
+    ],
+    "Boat/Collisions": [
+      {
+        "step": 10000,
+        "value": 0.8333333134651184
+      },
+      {
+        "step": 20000,
+        "value": 0.5892857313156128
+      },
+      {
+        "step": 30000,
+        "value": 0.9142857193946838
+      },
+      {
+        "step": 40000,
+        "value": 1.0555555820465088
+      },
+      {
+        "step": 50000,
+        "value": 1.4117647409439087
+      },
+      {
+        "step": 60000,
+        "value": 1.121212124824524
+      },
+      {
+        "step": 70000,
+        "value": 1.4137930870056152
+      },
+      {
+        "step": 80000,
+        "value": 1.4722222089767456
+      },
+      {
+        "step": 90000,
+        "value": 1.5185185670852661
+      }
+    ],
+    "Policy/Extrinsic Value Estimate": [
+      {
+        "step": 10000,
+        "value": 2.757880449295044
+      },
+      {
+        "step": 20000,
+        "value": 2.315229892730713
+      },
+      {
+        "step": 30000,
+        "value": 1.7495514154434204
+      },
+      {
+        "step": 40000,
+        "value": 1.4714598655700684
+      },
+      {
+        "step": 50000,
+        "value": 1.3372198343276978
+      },
+      {
+        "step": 60000,
+        "value": 1.319272756576538
+      },
+      {
+        "step": 70000,
+        "value": 1.2446304559707642
+      },
+      {
+        "step": 80000,
+        "value": 1.1334030628204346
+      },
+      {
+        "step": 90000,
+        "value": 1.2524628639221191
+      }
+    ],
+    "Environment/Cumulative Reward": [
+      {
+        "step": 10000,
+        "value": 3.6071436405181885
+      },
+      {
+        "step": 20000,
+        "value": 4.240045547485352
+      },
+      {
+        "step": 30000,
+        "value": 4.989614009857178
+      },
+      {
+        "step": 40000,
+        "value": 5.638621807098389
+      },
+      {
+        "step": 50000,
+        "value": 5.014069080352783
+      },
+      {
+        "step": 60000,
+        "value": 4.480576515197754
+      },
+      {
+        "step": 70000,
+        "value": 5.417649269104004
+      },
+      {
+        "step": 80000,
+        "value": 4.8626298904418945
+      },
+      {
+        "step": 90000,
+        "value": 6.2275776863098145
+      }
+    ],
+    "Policy/Extrinsic Reward": [
+      {
+        "step": 10000,
+        "value": 3.6071436405181885
+      },
+      {
+        "step": 20000,
+        "value": 4.240045547485352
+      },
+      {
+        "step": 30000,
+        "value": 4.989614009857178
+      },
+      {
+        "step": 40000,
+        "value": 5.638621807098389
+      },
+      {
+        "step": 50000,
+        "value": 5.014069080352783
+      },
+      {
+        "step": 60000,
+        "value": 4.480576515197754
+      },
+      {
+        "step": 70000,
+        "value": 5.417649269104004
+      },
+      {
+        "step": 80000,
+        "value": 4.8626298904418945
+      },
+      {
+        "step": 90000,
+        "value": 6.2275776863098145
+      }
+    ],
+    "Losses/Policy Loss": [
+      {
+        "step": 10000,
+        "value": 0.048890698701143265
+      },
+      {
+        "step": 20000,
+        "value": 0.03890727087855339
+      },
+      {
+        "step": 30000,
+        "value": 0.04469694197177887
+      },
+      {
+        "step": 40000,
+        "value": 0.044713716953992844
+      },
+      {
+        "step": 50000,
+        "value": 0.048077549785375595
+      },
+      {
+        "step": 60000,
+        "value": 0.05252816155552864
+      },
+      {
+        "step": 70000,
+        "value": 0.05426841974258423
+      },
+      {
+        "step": 80000,
+        "value": 0.047478847205638885
+      },
+      {
+        "step": 90000,
+        "value": 0.054996199905872345
+      }
+    ],
+    "Losses/Value Loss": [
+      {
+        "step": 10000,
+        "value": 0.2808752655982971
+      },
+      {
+        "step": 20000,
+        "value": 0.1650766283273697
+      },
+      {
+        "step": 30000,
+        "value": 0.11271735280752182
+      },
+      {
+        "step": 40000,
+        "value": 0.10229934006929398
+      },
+      {
+        "step": 50000,
+        "value": 0.06638605892658234
+      },
+      {
+        "step": 60000,
+        "value": 0.06008155271410942
+      },
+      {
+        "step": 70000,
+        "value": 0.06374366581439972
+      },
+      {
+        "step": 80000,
+        "value": 0.059825144708156586
+      },
+      {
+        "step": 90000,
+        "value": 0.060223136097192764
+      }
+    ],
+    "Policy/Learning Rate": [
+      {
+        "step": 10000,
+        "value": 0.00029373200959526
+      },
+      {
+        "step": 20000,
+        "value": 0.00028547950205393136
+      },
+      {
+        "step": 30000,
+        "value": 0.00027513832901604474
+      },
+      {
+        "step": 40000,
+        "value": 0.00026474701007828116
+      },
+      {
+        "step": 50000,
+        "value": 0.00025424768682569265
+      },
+      {
+        "step": 60000,
+        "value": 0.00024365501303691417
+      },
+      {
+        "step": 70000,
+        "value": 0.00023535401851404458
+      },
+      {
+        "step": 80000,
+        "value": 0.00022496236488223076
+      },
+      {
+        "step": 90000,
+        "value": 0.00021457253023982048
+      }
+    ],
+    "Policy/Epsilon": [
+      {
+        "step": 10000,
+        "value": 0.19791066646575928
+      },
+      {
+        "step": 20000,
+        "value": 0.19515983760356903
+      },
+      {
+        "step": 30000,
+        "value": 0.19171278178691864
+      },
+      {
+        "step": 40000,
+        "value": 0.18824900686740875
+      },
+      {
+        "step": 50000,
+        "value": 0.18474921584129333
+      },
+      {
+        "step": 60000,
+        "value": 0.18121832609176636
+      },
+      {
+        "step": 70000,
+        "value": 0.1784513294696808
+      },
+      {
+        "step": 80000,
+        "value": 0.17498745024204254
+      },
+      {
+        "step": 90000,
+        "value": 0.17152416706085205
+      }
+    ],
+    "Policy/Beta": [
+      {
+        "step": 10000,
+        "value": 0.001958422362804413
+      },
+      {
+        "step": 20000,
+        "value": 0.0019036807352676988
+      },
+      {
+        "step": 30000,
+        "value": 0.0018350842874497175
+      },
+      {
+        "step": 40000,
+        "value": 0.001766155124641955
+      },
+      {
+        "step": 50000,
+        "value": 0.0016965095419436693
+      },
+      {
+        "step": 60000,
+        "value": 0.001626244862563908
+      },
+      {
+        "step": 70000,
+        "value": 0.0015711815794929862
+      },
+      {
+        "step": 80000,
+        "value": 0.001502250088378787
+      },
+      {
+        "step": 90000,
+        "value": 0.0014333309372887015
+      }
+    ],
+    "Losses/Pretraining Loss": [
+      {
+        "step": 10000,
+        "value": 0.18472261726856232
+      },
+      {
+        "step": 20000,
+        "value": 0.09289240837097168
+      },
+      {
+        "step": 30000,
+        "value": 0.04639400914311409
+      },
+      {
+        "step": 40000,
+        "value": 0.024222983047366142
+      },
+      {
+        "step": 50000,
+        "value": 0.013449207879602909
+      },
+      {
+        "step": 60000,
+        "value": 0.007507283240556717
+      },
+      {
+        "step": 70000,
+        "value": 0.004926628898829222
+      },
+      {
+        "step": 80000,
+        "value": 0.0030659176409244537
+      },
+      {
+        "step": 90000,
+        "value": 0.0020024406258016825
+      }
+    ]
+  },
+  "model": {
+    "file": "results\\suoirung-ppo-v2\\SuoiRungBoat.onnx",
+    "sha256": "a0c5e808223586b7cdd1ab0bf6bbfcaf299f07525f984fc48479bb36b10cdd09",
+    "bytes": 94702,
+    "nodes": 27
+  }
+}

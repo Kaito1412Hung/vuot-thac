@@ -5,7 +5,15 @@
         "Unity.Splines",
         "Unity.Mathematics",
         "Unity.InputSystem",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.Services.Core",
+        "Unity.Services.Authentication",
+        "Unity.Services.Multiplayer",
+        "Unity.Netcode.Runtime",
+        "Unity.Networking.Transport",
+        "Unity.Collections",
+        "Unity.ML-Agents",
+        "Unity.InferenceEngine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

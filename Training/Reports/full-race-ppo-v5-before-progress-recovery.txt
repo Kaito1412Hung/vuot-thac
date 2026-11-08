@@ -1,0 +1,7 @@
+controller=PPO finished=4/6 limitSeconds=300 traffic=true model_sha256=040d3439ab1908b3599b1c261918c844228e72f2a4d7b2eb87aad03ca5924a3b difficulty=2 scenario=0
+hull=XuongBaLa finished=True checkpoints=12 time=134.78 distance=925.13 impacts=3 recoveries=0 pos=(38.25, 0.12, 790.58) steer=0 throttle=0.35 arc=1009.754
+hull=Kayak finished=False checkpoints=3 time=0.00 distance=244.21 impacts=0 recoveries=1 pos=(-94.76, 19.45, 175.78) steer=0.03529013 throttle=0.8028272 arc=227.3354
+hull=BeTre finished=False checkpoints=1 time=0.00 distance=119.97 impacts=1 recoveries=0 pos=(23.96, 21.33, 59.35) steer=-0.1694739 throttle=0.2905978 arc=85.86572
+hull=CaNoMay finished=True checkpoints=12 time=140.50 distance=925.13 impacts=13 recoveries=0 pos=(39.01, 0.18, 790.75) steer=0 throttle=0.35 arc=1094.447
+hull=ThuyenBuom finished=True checkpoints=12 time=130.10 distance=925.13 impacts=8 recoveries=0 pos=(38.40, 0.16, 790.63) steer=0 throttle=0.35 arc=1006.006
+hull=XuongBaLa finished=True checkpoints=12 time=132.56 distance=925.13 impacts=6 recoveries=0 pos=(37.96, 0.12, 790.71) steer=0 throttle=0.35 arc=1006.153

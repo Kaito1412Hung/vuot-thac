@@ -1,0 +1,7 @@
+controller=FSM finished=6/6 limitSeconds=300 traffic=true model_sha256= difficulty=2 scenario=0
+hull=XuongBaLa finished=True checkpoints=12 time=116.46 distance=925.13 impacts=6 recoveries=0 pos=(39.92, 0.21, 790.59)
+hull=Kayak finished=True checkpoints=12 time=96.48 distance=925.13 impacts=7 recoveries=0 pos=(39.91, 0.17, 790.71)
+hull=BeTre finished=True checkpoints=12 time=142.44 distance=925.13 impacts=11 recoveries=1 pos=(39.91, 0.12, 790.63)
+hull=CaNoMay finished=True checkpoints=12 time=125.40 distance=925.13 impacts=11 recoveries=1 pos=(39.81, 0.27, 790.78)
+hull=ThuyenBuom finished=True checkpoints=12 time=113.04 distance=925.13 impacts=9 recoveries=0 pos=(39.14, 0.25, 790.55)
+hull=XuongBaLa finished=True checkpoints=12 time=112.72 distance=925.13 impacts=8 recoveries=0 pos=(40.00, 0.21, 790.54)

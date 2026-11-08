@@ -12,7 +12,7 @@ namespace VuotThac.Boats
     /// bên dưới hiện tên, mô tả và bốn chỉ số. Chọn xong thì thuyền được thả xuống nước cho người chơi lái.
     /// Giao diện được dựng bằng code nên không cần chỉnh tay trong scene.
     /// </summary>
-    public class BoatSelectScreen : MonoBehaviour
+    public partial class BoatSelectScreen : MonoBehaviour
     {
         public BoatCatalog catalog;
         public RiverTrack track;
@@ -35,6 +35,11 @@ namespace VuotThac.Boats
         float raceTime;
         GameObject finishRoot;
         Text finishText;
+        ScrollRect finishScroll;
+        BoatRace race;
+        Text raceNotice;
+        DifficultyLevel difficulty;
+        Text difficultyText;
 
         Font font;
         GameObject selectRoot, hudRoot;
@@ -71,6 +76,7 @@ namespace VuotThac.Boats
 
         void OnDestroy()
         {
+            if(onlineRoom!=null)_ = onlineRoom.LeaveAsync();
             foreach (var a in new[] { prevAction, nextAction, confirmAction, backAction })
                 a?.Dispose();
         }
@@ -97,6 +103,11 @@ namespace VuotThac.Boats
 
         void Update()
         {
+            if(onlinePanel!=null&&onlinePanel.activeSelf)
+            {
+                if(backAction.WasPressedThisFrame())CloseOnlinePanel();
+                AnimatePreview();return;
+            }
             if (state == State.Selecting)
             {
                 if (prevAction.WasPressedThisFrame()) Show(index - 1);
@@ -113,18 +124,23 @@ namespace VuotThac.Boats
                 }
                 if (player != null)
                 {
-                    raceTime += Time.deltaTime;
-                    var sample = track.GetNearest(track.BeforeRaceInsertion(player.transform.position));
-                    float progress = Mathf.Clamp01((sample.distance - track.StartDistance) / track.RaceLength);
-                    speedText.text = $"{player.Speed * 3.6f:0} km/h  ·  {progress * 100:0}%\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}";
-                    var finish = track.EvaluateAtDistance(track.FinishDistance);
-                    Vector3 delta = player.transform.position - track.AfterRaceInsertion(finish.center);
-                    delta.y = 0;
-                    if (sample.distance >= track.FinishDistance && delta.magnitude < 40 && Vector3.Dot(delta, finish.tangent) >= 0)
-                        FinishRace();
+                    if(!onlinePlaying)race.Tick(Time.deltaTime);raceTime=race.Elapsed;
+                    TickPhaseFour(Time.deltaTime);
+                    raceNotice.text=race.CountdownRemaining>0?Mathf.CeilToInt(race.CountdownRemaining).ToString():"";
+                    float progress = Mathf.Clamp01((race.Player.Distance - track.StartDistance) / track.RaceLength);
+                    speedText.text = $"HẠNG {race.PlayerRank}/{race.Racers.Count}  ·  {player.Speed * 3.6f:0} km/h\n{progress * 100:0}%  ·  CP {race.Player.Checkpoints}  ·  {Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}";
+                    if(state==State.Playing&&race.Player.Finished)FinishRace();
                 }
             }
-            else if (backAction.WasPressedThisFrame() || confirmAction.WasPressedThisFrame()) EnterSelect();
+            else
+            {
+                if(race!=null&&race.Running)
+                {
+                    if(!onlinePlaying)race.Tick(Time.deltaTime);
+                }
+                TickPhaseFour(Time.deltaTime);UpdateFinishResults();
+                if (backAction.WasPressedThisFrame() || confirmAction.WasPressedThisFrame()) EnterSelect();
+            }
         }
 
         // ---------- Luồng chơi ----------
@@ -133,10 +149,17 @@ namespace VuotThac.Boats
 
         void EnterSelect()
         {
+            cup.Cancel();
+            if(onlinePlaying)
+            {
+                onlinePlaying=false;if(onlineDriver!=null){onlineDriver.enabled=false;Destroy(onlineDriver);}
+                if(onlineRoom!=null)_ = onlineRoom.LeaveAsync();
+            }
             state = State.Selecting;
+            if(race!=null)race.Clear();
             if (finishRoot != null) finishRoot.SetActive(false);
             if (playerBoat != null)
-                Destroy(playerBoat);
+            {playerBoat.SetActive(false);Destroy(playerBoat);}
             player = null;
             if (boatCamera != null)
                 boatCamera.target = null;
@@ -152,7 +175,7 @@ namespace VuotThac.Boats
             var def = catalog.boats[index];
 
             if (preview != null)
-                Destroy(preview);
+            {preview.SetActive(false);Destroy(preview);}
             preview = Instantiate(def.prefab, spot, spotRotation);
             preview.name = "Preview_" + def.name;
             preview.transform.position=spot+Vector3.up*preview.GetComponent<BoatController>().FloatHeight;
@@ -198,13 +221,14 @@ namespace VuotThac.Boats
 
         void StartRace()
         {
+            PreparePhaseFourRound();
             raceTime = 0;
             var def = catalog.boats[index];
             PlayerPrefs.SetInt(PrefKey, index);
             PlayerPrefs.Save();
 
             if (preview != null)
-                Destroy(preview);
+            {preview.SetActive(false);Destroy(preview);}
 
             float spawnHeight=def.prefab.GetComponent<BoatController>().FloatHeight;
             playerBoat = Instantiate(def.prefab, spot + Vector3.up * (spawnHeight+0.02f), spotRotation);
@@ -212,6 +236,9 @@ namespace VuotThac.Boats
             player = playerBoat.GetComponent<BoatController>();
             player.Track = track;
             player.Input = playerBoat.AddComponent<PlayerBoatInput>();
+            if(race==null)race=gameObject.AddComponent<BoatRace>();
+            race.Begin(player,catalog,track,difficulty,opponentRoster:cup.Active?cupBoatRoster:null);
+            raceNotice.text="3";
             if (Application.isMobilePlatform)
                 playerBoat.AddComponent<MobileBoatControls>().Initialize((PlayerBoatInput)player.Input, boatCamera, this);
 
@@ -226,14 +253,28 @@ namespace VuotThac.Boats
         void FinishRace()
         {
             state = State.Finished;
+            raceTime=race.Player.Finished?race.Player.FinishTime:race.Elapsed;finishWait=0;
+            if(!onlinePlaying&&race.Player.Finished)
+            {
+                float best=PlayerPrefs.GetFloat("VuotThac.BestTime",float.MaxValue);
+                if(raceTime<best){PlayerPrefs.SetFloat("VuotThac.BestTime",raceTime);PlayerPrefs.Save();}
+            }
             var input = player.GetComponent<PlayerBoatInput>();
             input.ReleaseTouch(); input.enabled = false;
             var mobile = player.GetComponent<MobileBoatControls>();
             if (mobile != null) mobile.enabled = false;
             player.GetComponent<Rigidbody>().isKinematic = true;
+            foreach(var collider in player.GetComponentsInChildren<Collider>())collider.enabled=false;
             hudRoot.SetActive(false);
-            finishText.text = $"HOÀN THÀNH ĐƯỜNG ĐUA\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}";
+            SetResultText($"VỀ ĐÍCH — HẠNG {race.PlayerRank}/{race.Racers.Count}\n{Mathf.FloorToInt(raceTime / 60):00}:{raceTime % 60:00.0}\n\n"+race.Results());
             finishRoot.SetActive(true);
+            UpdateFinishResults();
+        }
+        void SetResultText(string text)
+        {
+            if(finishText.text==text)return;
+            finishText.text=text;
+            if(finishScroll!=null)finishText.rectTransform.sizeDelta=new Vector2(-20,Mathf.Max(530,finishText.preferredHeight+10));
         }
 
         // ---------- Giao diện ----------
@@ -283,7 +324,7 @@ namespace VuotThac.Boats
             statValues = new Text[StatNames.Length];
             for (int k = 0; k < StatNames.Length; k++)
             {
-                float y = -360f - k * 70f;
+                float y = -330f - k * 70f;
                 var label = Label(panel, "Stat_" + k, StatNames[k], 32, FontStyle.Bold, TextAnchor.MiddleLeft);
                 Place(label.rectTransform, new Vector2(0f, 1f), new Vector2(40f, y), new Vector2(170f, 44f), new Vector2(0f, 1f));
 
@@ -300,6 +341,26 @@ namespace VuotThac.Boats
 
             var start = Button(panel, "StartButton", "BẮT ĐẦU", new Color(0.2f, 0.62f, 0.3f), StartRace);
             Place(start, new Vector2(0.5f, 0f), new Vector2(0f, 50f), new Vector2(420f, 96f), new Vector2(0.5f, 0f));
+            difficulty=RaceDifficulty.Saved;
+            var difficultyButton=Button(panel,"Difficulty","",new Color(.12f,.3f,.42f),()=>
+            {
+                difficulty=(DifficultyLevel)(((int)difficulty+1)%5);
+                PlayerPrefs.SetInt("VuotThac.Difficulty",(int)difficulty);PlayerPrefs.Save();
+                difficultyText.text="MỨC: "+RaceDifficulty.Names[(int)difficulty].ToUpperInvariant()+"  >";
+            });
+            Place(difficultyButton,new Vector2(.5f,0),new Vector2(-145,205),new Vector2(280,66));
+            difficultyText=difficultyButton.GetComponentInChildren<Text>();difficultyText.fontSize=24;
+            difficultyText.text="MỨC: "+RaceDifficulty.Names[(int)difficulty].ToUpperInvariant()+"  >";
+
+            Text brainText=null;
+            var brainButton=Button(panel,"LearnedAI",BoatBrainSettings.Label,new Color(.12f,.3f,.42f),()=>
+            {
+                BoatBrainSettings.UseModel=!BoatBrainSettings.UseModel;
+                brainText.text=BoatBrainSettings.Label;
+            });
+            Place(brainButton,new Vector2(.5f,0),new Vector2(145,205),new Vector2(280,66));
+            brainText=brainButton.GetComponentInChildren<Text>();brainText.fontSize=24;
+            brainButton.GetComponent<Button>().interactable=BoatBrainSettings.Model!=null;
 
             var prev = Button(selectRoot.transform, "PrevButton", "<", new Color(0f, 0f, 0f, 0.5f), () => Show(index - 1));
             Place(prev, new Vector2(0.3f, 0f), new Vector2(-210f, 150f), new Vector2(110f, 110f));
@@ -316,23 +377,33 @@ namespace VuotThac.Boats
 
             // Giao diện khi đang chơi
             hudRoot = Rect(root, "Hud", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
+            raceNotice=Label(hudRoot.transform,"Countdown","",110,FontStyle.Bold,TextAnchor.MiddleCenter);
+            Place(raceNotice.rectTransform,new Vector2(.5f,.65f),Vector2.zero,new Vector2(500,180));Shadow(raceNotice);
             var hint = Label(hudRoot.transform, "Hint", "W/S: chèo tới/lùi    A/D: bẻ lái    R: về giữa dòng    V: đổi góc nhìn    Esc: chọn lại thuyền", 28, FontStyle.Normal, TextAnchor.UpperLeft);
             Place(hint.rectTransform, new Vector2(0f, 1f), new Vector2(30f, -24f), new Vector2(1200f, 40f), new Vector2(0f, 1f));
             Shadow(hint);
             if (Application.isMobilePlatform) hint.gameObject.SetActive(false);
             speedText = Label(hudRoot.transform, "Speed", "0 km/h", 56, FontStyle.Bold, TextAnchor.LowerRight);
-            Place(speedText.rectTransform, new Vector2(1f, 0f), new Vector2(-40f, 30f), new Vector2(400f, 80f), new Vector2(1f, 0f));
+            Place(speedText.rectTransform, new Vector2(1f, 0f), new Vector2(-40f, 30f), new Vector2(650f, 110f), new Vector2(1f, 0f));
             Shadow(speedText);
             speedText.fontSize = 38;
             if (Application.isMobilePlatform)
                 Place(speedText.rectTransform, new Vector2(1, 1), new Vector2(-40, -190), new Vector2(650, 120), new Vector2(1, 1));
             finishRoot = Rect(root, "Finish", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero).gameObject;
             finishRoot.AddComponent<Image>().color = new Color(0.02f, 0.06f, 0.09f, 0.85f);
-            finishText = Label(finishRoot.transform, "Result", "", 56, FontStyle.Bold, TextAnchor.MiddleCenter);
-            Place(finishText.rectTransform, new Vector2(0.5f, 0.6f), Vector2.zero, new Vector2(1100, 230));
-            var again = Button(finishRoot.transform, "Return", "CHỌN THUYỀN / CHƠI LẠI", new Color(0.2f, 0.62f, 0.3f), EnterSelect);
-            Place(again, new Vector2(0.5f, 0.35f), Vector2.zero, new Vector2(720, 110));
+            var resultViewport=Rect(finishRoot.transform,"ResultViewport",Vector2.zero,Vector2.zero,Vector2.zero,Vector2.zero);
+            Place(resultViewport,new Vector2(.5f,.64f),Vector2.zero,new Vector2(1100,530));
+            resultViewport.gameObject.AddComponent<Image>().color=Color.clear;resultViewport.gameObject.AddComponent<RectMask2D>();
+            finishScroll=resultViewport.gameObject.AddComponent<ScrollRect>();finishScroll.horizontal=false;finishScroll.viewport=resultViewport;
+            finishText = Label(resultViewport, "Result", "", 38, FontStyle.Bold, TextAnchor.UpperCenter);
+            finishText.rectTransform.anchorMin=new Vector2(0,1);finishText.rectTransform.anchorMax=Vector2.one;
+            finishText.rectTransform.pivot=new Vector2(.5f,1);finishText.rectTransform.anchoredPosition=Vector2.zero;
+            finishText.rectTransform.sizeDelta=new Vector2(-20,530);finishScroll.content=finishText.rectTransform;
+            var again = Button(finishRoot.transform, "Return", "CHỌN THUYỀN", new Color(0.2f, 0.62f, 0.3f), EnterSelect);
+            Place(again, new Vector2(0.5f, 0.22f), Vector2.zero, new Vector2(720, 110));
             finishRoot.SetActive(false);
+            BuildPhaseFourUI(panel);
+            BuildOnlineUI(root);
         }
 
         RectTransform Rect(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 position, Vector2 size)

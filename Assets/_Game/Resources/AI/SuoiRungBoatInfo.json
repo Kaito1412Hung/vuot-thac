@@ -1,0 +1,17 @@
+{
+  "observation_schema": 4,
+  "validated": true,
+  "run_id": "suoirung-ppo-allboats-v1",
+  "source_model": "results/suoirung-ppo-allboats-v1/SuoiRungBoat.onnx",
+  "sha256": "2a9b75bf0bd7101a6d7577316e455540cfa5fa623995973309fa9a978d8a242f",
+  "trained_steps": 80028,
+  "observations": 42,
+  "continuous_actions": 2,
+  "hidden_layers": [
+    128,
+    128
+  ],
+  "method": "FSM expert demonstrations + behavioral cloning + PPO; no FSM action source during inference",
+  "imported_utc": "2026-11-08T04:18:02.861812+00:00",
+  "android_validated": false
+}

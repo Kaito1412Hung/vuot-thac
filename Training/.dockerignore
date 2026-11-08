@@ -1,0 +1,8 @@
+.python310
+.cache
+.tmp
+results
+Demos*
+Reports
+*.log
+__pycache__

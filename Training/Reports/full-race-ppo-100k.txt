@@ -1,0 +1,7 @@
+controller=PPO finished=0/6 limitSeconds=300 traffic=true
+hull=XuongBaLa finished=False checkpoints=1 time=0.00 distance=124.53 impacts=16 recoveries=2
+hull=Kayak finished=False checkpoints=1 time=0.00 distance=124.03 impacts=33 recoveries=10
+hull=BeTre finished=False checkpoints=1 time=0.00 distance=121.03 impacts=1 recoveries=0
+hull=CaNoMay finished=False checkpoints=1 time=0.00 distance=121.78 impacts=1 recoveries=0
+hull=ThuyenBuom finished=False checkpoints=1 time=0.00 distance=120.62 impacts=1 recoveries=0
+hull=XuongBaLa finished=False checkpoints=1 time=0.00 distance=121.70 impacts=1 recoveries=0

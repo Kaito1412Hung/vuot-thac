@@ -325,6 +325,7 @@ namespace VuotThac.EditorTools.Boats
             catalog.boats = defs.ToArray();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
+            RefineCrew();
             Debug.Log($"[Vượt Thác] Đã tạo {defs.Count} thuyền và danh sách thuyền tại {CatalogPath}.");
         }
 

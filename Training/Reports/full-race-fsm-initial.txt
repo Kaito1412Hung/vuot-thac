@@ -1,0 +1,7 @@
+controller=FSM finished=5/6 limitSeconds=300 traffic=true
+hull=XuongBaLa finished=True checkpoints=12 time=120.12 distance=925.13 impacts=7 recoveries=0
+hull=Kayak finished=True checkpoints=12 time=96.48 distance=925.13 impacts=7 recoveries=0
+hull=BeTre finished=True checkpoints=12 time=149.02 distance=925.13 impacts=16 recoveries=1
+hull=CaNoMay finished=True checkpoints=12 time=145.46 distance=925.13 impacts=21 recoveries=3
+hull=ThuyenBuom finished=False checkpoints=11 time=0.00 distance=921.15 impacts=51 recoveries=13
+hull=XuongBaLa finished=True checkpoints=12 time=115.04 distance=925.13 impacts=11 recoveries=0

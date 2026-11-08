@@ -4,7 +4,9 @@
     "references": [
         "VuotThac.Runtime",
         "Unity.Splines",
-        "Unity.Mathematics"
+        "Unity.Mathematics",
+        "Unity.ML-Agents",
+        "Unity.InferenceEngine"
     ],
     "includePlatforms": [
         "Editor"

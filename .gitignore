@@ -72,3 +72,16 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+
+# Local ML training runtime/cache; retain configs, source, reports and deployed model.
+/Training/.python310/
+/Training/.cache/
+/Training/.tmp/
+/Training/results/
+/Training/Demos/
+/Training/Demos-v3/
+/Training/Demos-v4/
+/Training/Demos-allboats/
+/Training/editor-request.json
+/Training/runtime-status.txt
+/Training/*.log

@@ -208,7 +208,7 @@ namespace VuotThac.EditorTools.Boats
 
         // ---------- Chi tiết riêng từng thuyền ----------
 
-        static void AddDetails(Transform model, Spec spec, BoatMesh.HullShape? hullShape)
+        static void AddDetails(Transform model, Spec spec, BoatMesh.HullShape? hullShape,bool crewRepair=false)
         {
             var m = new BoatMesh();
             var h = hullShape ?? default;
@@ -232,10 +232,10 @@ namespace VuotThac.EditorTools.Boats
                     Gunwales(m, h, Gold, 0.022f); Ribs(m, h, WoodLight, 0.55f, -0.85f, 0.75f);
                     DragonHead(m, new Vector3(0, 0.3f, 3.0f));
                     DragonTail(m, new Vector3(0, 0.3f, -3.1f));
-                    foreach (float z in new[] { -1.7f, -2.2f })
+                    foreach (float z in new[] { -2.45f, -2.75f })
                         foreach (float side in new[] { -1f, 1f })
                         {
-                            var b = new Vector3(side * 0.42f, 0.2f, z);
+                            var b = new Vector3(side * 0.14f, 0.28f, z);
                             m.Cylinder(WoodDark, b, b + Vector3.up * 0.9f, 0.012f, 5);
                             m.DoubleTri(side > 0 ? Gold : Red, b + Vector3.up * 0.9f, b + Vector3.up * 0.62f, b + new Vector3(0, 0.76f, -0.38f));
                         }
@@ -249,7 +249,7 @@ namespace VuotThac.EditorTools.Boats
                     Basket(m, new Vector3(-0.35f, -0.2f, 0.3f), 0.16f, 0.24f);
                     Basket(m, new Vector3(0.3f, -0.2f, -0.2f), 0.14f, 0.2f);
                     m.Sphere(Hat, new Vector3(0.1f, -0.12f, 0.2f), new Vector3(0.2f, 0.15f, 0.3f), 8, 14); // bao gạo
-                    m.Beam(WoodDark, new Vector3(0.62f, 0.25f, -2.0f), new Vector3(0.62f, 0.62f, -2.0f), 0.06f, 0.06f); // cọc tựa mái chèo
+                    m.Beam(WoodDark, new Vector3(0.62f, 0.25f, -2.0f), new Vector3(0.62f, 0.35f, -2.0f), 0.06f, 0.06f); // cọc buộc dây thấp, không chắn đường quét mái chèo
                     break;
                 case "ThuyenBuom":
                     Gunwales(m, h, WoodDark, 0.02f);
@@ -354,7 +354,9 @@ namespace VuotThac.EditorTools.Boats
                     break;
             }
             if (m.VertexCount == 0) return;
-            var mesh = m.Build("Details_" + spec.id, out var mats); AssetDatabase.AddObjectToAsset(mesh, MeshAsset);
+            Material[] mats;Mesh mesh;
+            if(crewRepair)mesh=SavedCrewMesh("ClearanceDetails_"+spec.id,m,out mats);
+            else {mesh=m.Build("Details_"+spec.id,out mats);AssetDatabase.AddObjectToAsset(mesh,MeshAsset);}
             var go = new GameObject("BoatDetails"); go.transform.SetParent(model, false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh; go.AddComponent<MeshRenderer>().sharedMaterials = mats;
         }

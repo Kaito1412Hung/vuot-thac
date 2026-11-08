@@ -19,6 +19,7 @@ namespace VuotThac.Boats
 
     public class MobileBoatControls : MonoBehaviour
     {
+        Rect previousArea; int previousWidth, previousHeight;
         PlayerBoatInput input;
         RectTransform safe;
         GameObject canvas;
@@ -78,9 +79,16 @@ namespace VuotThac.Boats
         {
             if (input == null || safe == null) return;
             var area = Screen.safeArea;
+            if(area==previousArea && Screen.width==previousWidth && Screen.height==previousHeight) { UpdateInput(); return; }
+            previousArea=area; previousWidth=Screen.width; previousHeight=Screen.height;
             safe.anchorMin = new Vector2(area.xMin / Screen.width, area.yMin / Screen.height);
             safe.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
             safe.offsetMin = safe.offsetMax = Vector2.zero;
+            UpdateInput();
+        }
+        void UpdateInput()
+        {
+            input.TouchSteeringActive = left.Held || right.Held;
             input.TouchSteer = (right.Held ? 1 : 0) - (left.Held ? 1 : 0);
             input.TouchThrottle = (forward.Held ? 1 : 0) - (reverse.Held ? 1 : 0);
         }

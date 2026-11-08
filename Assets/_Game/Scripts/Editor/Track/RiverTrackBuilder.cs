@@ -154,6 +154,7 @@ namespace VuotThac.EditorTools.Track
             ForestDistribution.Balance(track);
             Debug.Log("[Vượt Thác] Gộp lưới đất: " + TerrainMeshCompactor.Run(track, terrainBeforeSubdivision, true).Split('\n')[0]);
             Debug.Log("[Vượt Thác] Bịt chỗ nối chữ T: " + TerrainMeshCompactor.CloseAll(track, true).Split('\n')[0]);
+            HouseEntranceGrounding.Repair(track);
             foreach (var copy in terrainBeforeSubdivision.Values) Object.DestroyImmediate(copy);
             SaveMeshes(track, ctx.Meshes);
             SetStatic(root.gameObject);

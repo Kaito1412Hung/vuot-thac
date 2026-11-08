@@ -1,0 +1,110 @@
+{
+  "model": {
+    "observation_schema": 4,
+    "validated": true,
+    "run_id": "suoirung-ppo-v5",
+    "source_model": "results/suoirung-ppo-v5/SuoiRungBoat.onnx",
+    "sha256": "040d3439ab1908b3599b1c261918c844228e72f2a4d7b2eb87aad03ca5924a3b",
+    "trained_steps": 75324,
+    "observations": 42,
+    "continuous_actions": 2,
+    "hidden_layers": [
+      128,
+      128
+    ],
+    "method": "FSM expert demonstrations + behavioral cloning + PPO; no FSM action source during inference",
+    "imported_utc": "2026-11-08T02:37:32.360898+00:00",
+    "android_validated": false
+  },
+  "source_sha256": {
+    "learn.py": "66cb242808981a8becb9bb202088302c4b6a4ad8e98bc9120eb7d2095b35b383",
+    "config/boat_ppo.yaml": "37556691602ace49483278004f4ac049c44ad98bd9045b7b527e879076092d8f",
+    "requirements.lock.txt": "7513572d58851dd154a8a052b01e059468406916135ba37dad01a4d694d57524",
+    "correct_bc_scale.py": "be2ee9f57632955f58792a79520188eca6386164b1d7f9c98b6ef8579466774e"
+  },
+  "race_results": [
+    {
+      "report": "full-race-fsm.txt",
+      "controller": "FSM",
+      "difficulty": 2,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 117.76,
+      "impacts": 52,
+      "recoveries": 2
+    },
+    {
+      "report": "full-race-ppo-d0-s0.txt",
+      "controller": "PPO",
+      "difficulty": 0,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 143.56,
+      "impacts": 37,
+      "recoveries": 2
+    },
+    {
+      "report": "full-race-ppo-d1-s0.txt",
+      "controller": "PPO",
+      "difficulty": 1,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 153.14,
+      "impacts": 45,
+      "recoveries": 3
+    },
+    {
+      "report": "full-race-ppo-d2-s0.txt",
+      "controller": "PPO",
+      "difficulty": 2,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 153.36,
+      "impacts": 44,
+      "recoveries": 3
+    },
+    {
+      "report": "full-race-ppo-d2-s1.txt",
+      "controller": "PPO",
+      "difficulty": 2,
+      "scenario": 1,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 147.73,
+      "impacts": 47,
+      "recoveries": 2
+    },
+    {
+      "report": "full-race-ppo-d3-s0.txt",
+      "controller": "PPO",
+      "difficulty": 3,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 154.35,
+      "impacts": 62,
+      "recoveries": 4
+    },
+    {
+      "report": "full-race-ppo-d4-s0.txt",
+      "controller": "PPO",
+      "difficulty": 4,
+      "scenario": 0,
+      "finished": 6,
+      "boats": 6,
+      "mean_finish_seconds": 153.51,
+      "impacts": 45,
+      "recoveries": 3
+    }
+  ],
+  "limitations": [
+    "Unity Editor only; Android not validated",
+    "One batch per difficulty; balance needs more trials",
+    "PPO is slower than FSM in the recorded normal batch",
+    "Checkpoint recoveries are included in totals"
+  ]
+}

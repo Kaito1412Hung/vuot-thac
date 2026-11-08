@@ -23,6 +23,7 @@ Shader "VuotThac/ScenicFlow"
             #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "BoatInteriorClip.hlsl"
             CBUFFER_START(UnityPerMaterial)
             float4 _BaseColor;
             float _Speed, _Foam, _MouthFade, _Cascade;
@@ -38,6 +39,7 @@ Shader "VuotThac/ScenicFlow"
             }
             half4 Frag(V i):SV_Target
             {
+                ClipWaterInsideBoat(i.world);
                 float t=_Time.y*_Speed;
                 float3 baseNormal=normalize(i.normal);
                 float slope=1-abs(baseNormal.y);

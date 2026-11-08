@@ -202,10 +202,15 @@ namespace VuotThac.EditorTools.Boats
             if(spec.id=="CaNoMay")
             {
                 var center=rowerSeats[0].position+new Vector3(0,0.32f,0.55f); // vô lăng cách ngực khoảng nửa mét
+                var rotating=new BoatMesh();
                 var wheel=new System.Collections.Generic.List<Vector3>();
-                for(int i=0;i<40;i++){float angle=i*Mathf.PI*2/40;wheel.Add(center+new Vector3(Mathf.Cos(angle)*0.23f,Mathf.Sin(angle)*0.23f,0));}
-                details.Tube(Dark,wheel,0.014f,12);
-                for(int i=0;i<3;i++)details.Cylinder(Gray,center,wheel[i*13],0.012f,12);
+                for(int i=0;i<40;i++){float angle=i*Mathf.PI*2/40;wheel.Add(new Vector3(Mathf.Cos(angle)*0.23f,Mathf.Sin(angle)*0.23f,0));}
+                rotating.Tube(Dark,wheel,0.014f,12);
+                for(int i=0;i<3;i++)rotating.Cylinder(Gray,Vector3.zero,wheel[i*13],0.012f,12);
+                var wheelMesh=rotating.Build("SteeringWheel_CaNoMay",out var wheelMats);AssetDatabase.AddObjectToAsset(wheelMesh,MeshAsset);
+                var wheelObject=new GameObject("SteeringWheel");wheelObject.transform.SetParent(model,false);wheelObject.transform.localPosition=center;
+                wheelObject.AddComponent<MeshFilter>().sharedMesh=wheelMesh;wheelObject.AddComponent<MeshRenderer>().sharedMaterials=wheelMats;
+                model.GetComponentInChildren<BoatRower>().steeringWheel=wheelObject.transform;
                 details.Cylinder(Dark,center,center+new Vector3(0,-0.24f,0.27f),0.022f,16);
             }
             if(spec.id=="Kayak"||spec.id=="PhaoCaoSu")

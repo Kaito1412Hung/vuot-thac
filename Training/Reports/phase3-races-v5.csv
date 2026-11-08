@@ -1,0 +1,8 @@
+﻿report,controller,difficulty,scenario,finished,boats,mean_finish_seconds,impacts,recoveries
+full-race-fsm.txt,FSM,2,0,6,6,117.76,52,2
+full-race-ppo-d0-s0.txt,PPO,0,0,6,6,143.56,37,2
+full-race-ppo-d1-s0.txt,PPO,1,0,6,6,153.14,45,3
+full-race-ppo-d2-s0.txt,PPO,2,0,6,6,153.36,44,3
+full-race-ppo-d2-s1.txt,PPO,2,1,6,6,147.73,47,2
+full-race-ppo-d3-s0.txt,PPO,3,0,6,6,154.35,62,4
+full-race-ppo-d4-s0.txt,PPO,4,0,6,6,153.51,45,3

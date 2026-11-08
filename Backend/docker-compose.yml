@@ -1,0 +1,72 @@
+name: vuotthac
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vuotthac}
+      POSTGRES_USER: ${POSTGRES_USER:-vuotthac}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Cần đặt POSTGRES_PASSWORD trong file .env}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # Không mở cổng ra ngoài: chỉ API trong mạng nội bộ mới nối được database.
+
+  api:
+    build:
+      context: ./api
+      target: production
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vuotthac}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vuotthac}
+      DAILY_SECRET: ${DAILY_SECRET:?Cần đặt DAILY_SECRET trong file .env}
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Chạy test: docker compose --profile test run --rm --build api-test
+  api-test:
+    profiles: ["test"]
+    build:
+      context: ./api
+      target: test
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vuotthac}:${POSTGRES_PASSWORD}@db:5432/vuotthac_test
+      ADMIN_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vuotthac}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vuotthac}
+      DAILY_SECRET: test-secret-only-for-automated-tests
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,8 @@
+# SITE_ADDRESS=:80 chạy HTTP trên máy. Đặt tên miền thật (api.ten-mien.com) thì Caddy tự xin chứng chỉ HTTPS.
+{$SITE_ADDRESS::80} {
+	request_body {
+		max_size 1MB
+	}
+	encode gzip
+	reverse_proxy api:8000
+}
